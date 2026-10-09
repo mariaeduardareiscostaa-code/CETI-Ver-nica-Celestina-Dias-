@@ -1,0 +1,6 @@
+{
+  "name": "CETI Verônica Celestina Dias",
+  "description": "Aplicativo escolar com informações, valores e contato.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

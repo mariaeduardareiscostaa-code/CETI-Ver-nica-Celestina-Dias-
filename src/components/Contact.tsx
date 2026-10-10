@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, Mail, MessageSquare, Send } from 'lucide-react';
+import { Phone, Mail, MessageSquare, Send, MapPin } from 'lucide-react';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -25,12 +25,12 @@ export default function Contact() {
   };
 
   return (
-    <section id="contato" className="py-20 bg-blue-900 text-white">
+    <section id="contato" className="py-20 bg-emerald-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold sm:text-4xl">Fale com a Gestão</h2>
-          <div className="mt-2 h-1 w-20 bg-yellow-400 mx-auto rounded"></div>
-          <p className="mt-4 text-xl text-blue-200">
+          <div className="mt-2 h-1 w-20 bg-emerald-400 mx-auto rounded"></div>
+          <p className="mt-4 text-xl text-emerald-100">
             Estamos sempre abertos para ouvir alunos, pais e a comunidade.
           </p>
         </div>
@@ -39,37 +39,61 @@ export default function Contact() {
           
           {/* Contact Details */}
           <div className="lg:col-span-1 space-y-8">
-            <div className="bg-blue-800 p-8 rounded-2xl">
-              <h3 className="text-xl font-semibold mb-6 border-b border-blue-700 pb-4">Canais de Atendimento</h3>
+            <div className="bg-emerald-950/60 border border-emerald-800/80 p-8 rounded-2xl">
+              <h3 className="text-xl font-semibold mb-6 border-b border-emerald-800 pb-4">Canais de Atendimento</h3>
               
               <div className="space-y-6">
                 <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-blue-700 rounded-full">
-                    <Phone className="w-6 h-6 text-yellow-400" />
+                  <div className="p-3 bg-emerald-800/80 rounded-full flex-shrink-0">
+                    <Phone className="w-6 h-6 text-emerald-300" />
                   </div>
                   <div>
-                    <p className="text-blue-200 text-sm">Telefone da Secretaria</p>
-                    <p className="font-semibold">(00) 0000-0000</p>
+                    <p className="text-emerald-200/80 text-sm">Telefone da Instituição</p>
+                    <a 
+                      href="tel:+558994107024"
+                      className="font-semibold text-white hover:text-emerald-300 transition-colors"
+                    >
+                      +55 89 9410-7024
+                    </a>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-blue-700 rounded-full">
-                    <Mail className="w-6 h-6 text-yellow-400" />
+                  <div className="p-3 bg-emerald-800/80 rounded-full flex-shrink-0">
+                    <Mail className="w-6 h-6 text-emerald-300" />
                   </div>
                   <div>
-                    <p className="text-blue-200 text-sm">E-mail Institucional</p>
-                    <p className="font-semibold break-all">gestao.vcd@educacao.gov.br</p>
+                    <p className="text-emerald-200/80 text-sm">E-mail Institucional</p>
+                    <p className="font-semibold text-white break-all">gestao.vcd@educacao.gov.br</p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-blue-700 rounded-full">
-                    <MessageSquare className="w-6 h-6 text-yellow-400" />
+                  <div className="p-3 bg-emerald-800/80 rounded-full flex-shrink-0">
+                    <MessageSquare className="w-6 h-6 text-emerald-300" />
                   </div>
                   <div>
-                    <p className="text-blue-200 text-sm">WhatsApp da Gestão</p>
-                    <p className="font-semibold">(00) 90000-0000</p>
+                    <p className="text-emerald-200/80 text-sm">WhatsApp da Gestão</p>
+                    <a 
+                      href="https://wa.me/558994107024" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="font-semibold text-white hover:text-emerald-300 transition-colors"
+                    >
+                      +55 89 9410-7024
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4 pt-2 border-t border-emerald-800/70">
+                  <div className="p-3 bg-emerald-800/80 rounded-full flex-shrink-0">
+                    <MapPin className="w-6 h-6 text-emerald-300" />
+                  </div>
+                  <div>
+                    <p className="text-emerald-200/80 text-sm">Endereço da Instituição</p>
+                    <p className="font-semibold text-white text-sm leading-snug">
+                      R. Marino Caetano, Campo Alegre do Fidalgo - PI, 64767-000
+                    </p>
                   </div>
                 </div>
               </div>
@@ -78,11 +102,11 @@ export default function Contact() {
 
           {/* Contact Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white p-8 rounded-2xl text-gray-900 shadow-xl">
-              <h3 className="text-2xl font-bold text-blue-900 mb-6">Envie sua Mensagem</h3>
+            <div className="bg-white p-8 rounded-2xl text-gray-900 shadow-xl border border-emerald-100">
+              <h3 className="text-2xl font-bold text-emerald-950 mb-6">Envie sua Mensagem</h3>
               
               {isSent ? (
-                <div className="bg-green-100 text-green-800 p-4 rounded-lg flex items-center mb-6">
+                <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 p-4 rounded-lg flex items-center mb-6">
                   <p className="font-medium">Sua mensagem foi enviada com sucesso! A gestão responderá em breve.</p>
                 </div>
               ) : null}
@@ -98,7 +122,7 @@ export default function Contact() {
                       required
                       value={formData.nome}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 transition-colors"
                       placeholder="Seu nome"
                     />
                   </div>
@@ -111,7 +135,7 @@ export default function Contact() {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 transition-colors"
                       placeholder="seu.email@exemplo.com"
                     />
                   </div>
@@ -125,7 +149,7 @@ export default function Contact() {
                     required
                     value={formData.assunto}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 transition-colors"
                   >
                     <option value="">Selecione um assunto...</option>
                     <option value="direcao">Direção Escolar</option>
@@ -144,14 +168,14 @@ export default function Contact() {
                     required
                     value={formData.mensagem}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 transition-colors resize-none"
                     placeholder="Como podemos ajudar?"
                   ></textarea>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex items-center justify-center space-x-2"
+                  className="w-full sm:w-auto px-8 py-3 bg-emerald-700 text-white font-medium rounded-lg hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition-colors flex items-center justify-center space-x-2"
                 >
                   <Send className="w-5 h-5" />
                   <span>Enviar Mensagem</span>

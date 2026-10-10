@@ -13,7 +13,7 @@ import Footer from './components/Footer';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans scroll-smooth">
+    <div className="min-h-screen bg-emerald-50/20 flex flex-col font-sans scroll-smooth">
       <Navbar />
       <main className="flex-grow">
         <Hero />

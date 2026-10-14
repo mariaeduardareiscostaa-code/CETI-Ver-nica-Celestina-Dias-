@@ -12,16 +12,22 @@ import Info from './components/Info';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import BullyingReportPage from './components/BullyingReportPage';
+import AdminPanel from './components/AdminPanel';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'bullying'>(() => {
-    return window.location.hash === '#denuncia-bullying' ? 'bullying' : 'home';
+  const [currentView, setCurrentView] = useState<'home' | 'bullying' | 'admin'>(() => {
+    if (window.location.hash === '#denuncia-bullying') return 'bullying';
+    if (window.location.hash === '#admin') return 'admin';
+    return 'home';
   });
 
   useEffect(() => {
     const handleHashChange = () => {
       if (window.location.hash === '#denuncia-bullying') {
         setCurrentView('bullying');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (window.location.hash === '#admin') {
+        setCurrentView('admin');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setCurrentView('home');
@@ -38,6 +44,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const openAdminLogin = () => {
+    window.location.hash = '#admin';
+    setCurrentView('admin');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const backToHome = () => {
     window.location.hash = '';
     setCurrentView('home');
@@ -48,9 +60,13 @@ export default function App() {
     return <BullyingReportPage onBackToHome={backToHome} />;
   }
 
+  if (currentView === 'admin') {
+    return <AdminPanel onBackToHome={backToHome} />;
+  }
+
   return (
     <div className="min-h-screen bg-emerald-50/20 flex flex-col font-sans scroll-smooth">
-      <Navbar onOpenBullyingReport={openBullyingReport} />
+      <Navbar onOpenBullyingReport={openBullyingReport} onOpenAdminLogin={openAdminLogin} />
       <main className="flex-grow">
         <Hero onOpenBullyingReport={openBullyingReport} />
         <BullyingBanner onOpenBullyingReport={openBullyingReport} />
@@ -58,7 +74,7 @@ export default function App() {
         <Info />
         <Contact />
       </main>
-      <Footer onOpenBullyingReport={openBullyingReport} />
+      <Footer onOpenBullyingReport={openBullyingReport} onOpenAdminLogin={openAdminLogin} />
     </div>
   );
 }

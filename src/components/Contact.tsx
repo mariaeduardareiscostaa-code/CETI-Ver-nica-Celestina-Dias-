@@ -12,12 +12,28 @@ export default function Contact() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate form submission
+    // Persist message for administration
+    try {
+      const existing = JSON.parse(localStorage.getItem('vcd_contact_messages') || '[]');
+      existing.unshift({
+        id: 'MSG-' + Math.floor(1000 + Math.random() * 9000),
+        nome: formData.nome,
+        email: formData.email,
+        assunto: formData.assunto,
+        mensagem: formData.mensagem,
+        data: new Date().toISOString(),
+        status: 'Nova'
+      });
+      localStorage.setItem('vcd_contact_messages', JSON.stringify(existing));
+    } catch {
+      // fallback
+    }
+
     setTimeout(() => {
       setIsSent(true);
       setFormData({ nome: '', email: '', assunto: '', mensagem: '' });
       setTimeout(() => setIsSent(false), 5000);
-    }, 1000);
+    }, 800);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

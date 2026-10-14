@@ -1,6 +1,11 @@
 import React from 'react';
+import { ShieldAlert } from 'lucide-react';
 
-export default function Hero() {
+interface HeroProps {
+  onOpenBullyingReport?: () => void;
+}
+
+export default function Hero({ onOpenBullyingReport }: HeroProps) {
   return (
     <section id="inicio" className="relative bg-gradient-to-b from-emerald-950 via-emerald-900 to-emerald-900 text-white pt-24 pb-32 flex items-center justify-center text-center px-4 overflow-hidden">
       {/* Background decoration */}
@@ -24,13 +29,20 @@ export default function Hero() {
         <p className="text-lg md:text-2xl text-emerald-100 max-w-2xl mx-auto">
           Educação de qualidade, compromisso com o futuro e desenvolvimento integral dos nossos alunos.
         </p>
-        <div className="pt-6">
+        <div className="pt-6 flex flex-wrap items-center justify-center gap-4">
           <a
             href="#contato"
-            className="inline-block bg-emerald-400 text-emerald-950 font-bold px-8 py-3 rounded-full hover:bg-emerald-300 transition-colors shadow-lg shadow-emerald-950/20"
+            className="inline-flex items-center justify-center bg-emerald-400 text-emerald-950 font-bold px-8 py-3.5 rounded-full hover:bg-emerald-300 transition-colors shadow-lg shadow-emerald-950/20 text-sm sm:text-base"
           >
             Fale com a Gestão
           </a>
+          <button
+            onClick={onOpenBullyingReport}
+            className="inline-flex items-center justify-center gap-2 bg-emerald-800/80 hover:bg-emerald-800 text-white border border-emerald-400/50 font-semibold px-7 py-3.5 rounded-full transition-colors shadow-md backdrop-blur-sm hover:border-emerald-300 text-sm sm:text-base active:scale-95 cursor-pointer"
+          >
+            <ShieldAlert className="w-5 h-5 text-emerald-300" />
+            <span>Denunciar Bullying (100% Anônimo)</span>
+          </button>
         </div>
       </div>
     </section>

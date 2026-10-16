@@ -19,7 +19,8 @@ import {
   Filter, 
   BarChart3, 
   GraduationCap,
-  Inbox
+  Inbox,
+  KeyRound
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -55,9 +56,8 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
     return localStorage.getItem('vcd_admin_logged_in') === 'true';
   });
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [accessKey, setAccessKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState<'bullying' | 'messages' | 'stats'>('bullying');
 
@@ -160,19 +160,13 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
     e.preventDefault();
     setLoginError('');
 
-    // Acceptance of admin institutional credentials or demo
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPass = password.trim();
+    const cleanKey = accessKey.trim();
 
-    if (
-      (cleanEmail === 'admin@ceti.pi.gov.br' && cleanPass === 'admin123') ||
-      (cleanEmail === 'gestao@ceti.pi.gov.br' && cleanPass === 'gestao123') ||
-      (cleanEmail === 'admin' && cleanPass === 'admin')
-    ) {
+    if (cleanKey === '12345') {
       setIsAuthenticated(true);
       localStorage.setItem('vcd_admin_logged_in', 'true');
     } else {
-      setLoginError('E-mail institucional ou senha incorretos. Por favor, verifique seus dados de acesso.');
+      setLoginError('Chave de acesso incorreta. Por favor, verifique a chave informada.');
     }
   };
 
@@ -275,13 +269,13 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
           <div className="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-stone-200/80 space-y-6">
             <div className="text-center space-y-2">
               <div className="w-14 h-14 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-                <Lock className="w-7 h-7" />
+                <KeyRound className="w-7 h-7" />
               </div>
               <h1 className="text-2xl font-extrabold text-emerald-950 tracking-tight">
                 Painel da Gestão Escolar
               </h1>
               <p className="text-xs sm:text-sm text-stone-600">
-                Acesso exclusivo para Direção, Coordenação e Secretaria do CETI VCD.
+                Insira a chave de acesso da administração para entrar no painel.
               </p>
             </div>
 
@@ -292,42 +286,29 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-5">
               <div>
                 <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
-                  E-mail Institucional
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="exemplo@educacao.pi.gov.br"
-                  className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-sm bg-white text-stone-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
-                  Senha de Acesso
+                  Chave de Acesso
                 </label>
                 <div className="relative">
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type={showKey ? 'text' : 'password'}
                     required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2.5 pr-11 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-sm bg-white text-stone-900"
+                    autoFocus
+                    value={accessKey}
+                    onChange={(e) => setAccessKey(e.target.value)}
+                    placeholder="Digite a chave de acesso"
+                    className="w-full px-4 py-3 pr-11 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-sm bg-white text-stone-900 font-mono tracking-widest"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-700 cursor-pointer"
-                    title={showPassword ? "Ocultar senha" : "Exibir senha"}
-                    aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-3 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
+                    title={showKey ? "Ocultar chave" : "Exibir chave"}
+                    aria-label={showKey ? "Ocultar chave" : "Exibir chave"}
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
@@ -336,7 +317,7 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
                 type="submit"
                 className="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold rounded-xl transition-all shadow-md active:scale-98 text-sm cursor-pointer"
               >
-                Entrar no Painel Administrativo
+                Acessar Painel da Gestão
               </button>
             </form>
           </div>

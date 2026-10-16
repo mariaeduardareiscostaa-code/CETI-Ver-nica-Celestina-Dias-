@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import BullyingBanner from './components/BullyingBanner';
+import SchoolGallery from './components/SchoolGallery';
 import Values from './components/Values';
 import Info from './components/Info';
 import Contact from './components/Contact';
@@ -70,6 +71,7 @@ export default function App() {
       <main className="flex-grow">
         <Hero onOpenBullyingReport={openBullyingReport} />
         <BullyingBanner onOpenBullyingReport={openBullyingReport} />
+        <SchoolGallery />
         <Values />
         <Info />
         <Contact />

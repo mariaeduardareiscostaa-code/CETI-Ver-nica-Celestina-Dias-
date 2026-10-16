@@ -12,6 +12,7 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin }: Navba
   const links = [
     { name: 'Início', href: '#inicio' },
     { name: 'Sobre Nós', href: '#sobre' },
+    { name: 'Estrutura & Fotos', href: '#estrutura' },
     { name: 'Informações', href: '#info' },
     { name: 'Contato', href: '#contato' },
   ];

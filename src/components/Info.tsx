@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPin, Clock, CalendarDays, ExternalLink, Image as ImageIcon } from 'lucide-react';
-import fachadaImg from '../assets/images/ceti_fachada_frente_1792175517797.jpg';
+import fachadaImg from '../assets/images/cetifrente2.jpeg';
 
 export default function Info() {
   return (
@@ -65,18 +65,18 @@ export default function Info() {
 
             {/* Real photo reference for arriving at the school */}
             <div className="rounded-2xl overflow-hidden border border-emerald-200 shadow-sm bg-stone-50">
-              <div className="relative h-44 sm:h-52 overflow-hidden">
+              <div className="p-2 bg-stone-100">
                 <img
                   src={fachadaImg}
-                  alt="Foto da fachada para identificação no local"
-                  className="w-full h-full object-cover object-center"
+                  alt="Foto original da entrada principal do CETI Verônica Celestina Dias para reconhecimento no local"
+                  className="w-full h-auto block rounded-xl"
                 />
-                <div className="absolute top-3 left-3 bg-emerald-950/80 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                  <ImageIcon className="w-3 h-3 text-emerald-300" />
-                  <span>Foto Real da Entrada</span>
-                </div>
               </div>
-              <div className="p-4 flex items-center justify-between text-xs bg-emerald-50/50">
+              <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-emerald-50/50">
+                <div className="flex items-center gap-1.5 text-stone-700 font-medium">
+                  <ImageIcon className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span>Foto real da entrada oficial na R. Marino Caetano</span>
+                </div>
                 <span className="text-stone-600 font-medium">Reconheça a entrada pelo pórtico oficial e rampa acessível</span>
                 <a
                   href="https://www.google.com/maps/search/?api=1&query=R.+Marino+Caetano,+Campo+Alegre+do+Fidalgo+-+PI,+64767-000"

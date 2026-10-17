@@ -1,18 +1,20 @@
 import React from 'react';
-import { Menu, X, GraduationCap, ShieldAlert, Lock } from 'lucide-react';
+import { Menu, X, GraduationCap, ShieldAlert, Lock, BookOpen } from 'lucide-react';
 
 interface NavbarProps {
   onOpenBullyingReport?: () => void;
   onOpenAdminLogin?: () => void;
+  onOpenLibrary?: () => void;
 }
 
-export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin }: NavbarProps) {
+export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenLibrary }: NavbarProps) {
   const [isOpen, setIsOpen] = React.useState(false);
 
   const links = [
     { name: 'Início', href: '#inicio' },
     { name: 'Sobre Nós', href: '#sobre' },
     { name: 'Estrutura & Fotos', href: '#estrutura' },
+    { name: 'Biblioteca Digital', href: '#biblioteca' },
     { name: 'Informações', href: '#info' },
     { name: 'Contato', href: '#contato' },
   ];
@@ -27,46 +29,69 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin }: Navba
             <span className="font-bold text-xl tracking-tight sm:hidden">CETI VCD</span>
           </div>
           
-          <div className="hidden md:flex items-center space-x-4">
-            {links.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className="hover:bg-emerald-800 hover:text-emerald-200 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                {link.name}
-              </a>
-            ))}
+          <div className="hidden lg:flex items-center space-x-3">
+            {links.map((link) => {
+              if (link.name === 'Biblioteca Digital' && onOpenLibrary) {
+                return (
+                  <button
+                    key={link.name}
+                    onClick={onOpenLibrary}
+                    className="hover:bg-emerald-800 hover:text-emerald-200 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>{link.name}</span>
+                  </button>
+                );
+              }
+              return (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  className="hover:bg-emerald-800 hover:text-emerald-200 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  {link.name}
+                </a>
+              );
+            })}
           </div>
 
-          {/* Action Buttons: Bullying Report + Admin Login */}
-          <div className="hidden sm:flex items-center gap-2.5 shrink-0">
+          {/* Action Buttons: Biblioteca Shortcut + Bullying Report + Admin Login */}
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            <button
+              onClick={onOpenLibrary}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-lg transition-all whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
+              title="Acessar Catálogo e Reservar Livros na Biblioteca Digital Escolar"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-950" />
+              <span>Biblioteca Digital</span>
+            </button>
+
             <button
               onClick={onOpenBullyingReport}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 rounded-lg transition-colors whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-950 bg-emerald-200 hover:bg-emerald-100 rounded-lg transition-colors whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
               title="Acessar Canal Seguro para Denúncia Anônima de Bullying"
             >
-              <ShieldAlert className="w-4 h-4 text-emerald-900" />
-              <span>Denúncia de Bullying</span>
+              <ShieldAlert className="w-3.5 h-3.5 text-emerald-900" />
+              <span>Denúncia</span>
             </button>
 
             <button
               onClick={onOpenAdminLogin}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:text-white bg-emerald-950/70 hover:bg-emerald-950 border border-emerald-700/60 rounded-lg transition-colors whitespace-nowrap active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-100 hover:text-white bg-emerald-950/70 hover:bg-emerald-950 border border-emerald-700/60 rounded-lg transition-colors whitespace-nowrap active:scale-95 cursor-pointer"
               title="Acesso Administrativo (Direção e Coordenação)"
             >
-              <Lock className="w-3.5 h-3.5 text-emerald-400" />
+              <Lock className="w-3 h-3 text-emerald-400" />
               <span>Gestão</span>
             </button>
           </div>
           
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex sm:hidden items-center gap-1.5">
             <button
-              onClick={onOpenBullyingReport}
-              className="sm:hidden inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 rounded-md active:scale-95 cursor-pointer"
+              onClick={onOpenLibrary}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-md active:scale-95 cursor-pointer"
             >
-              <ShieldAlert className="w-3.5 h-3.5" />
-              <span>Denúncia</span>
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Biblioteca</span>
             </button>
 
             <button
@@ -87,13 +112,30 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin }: Navba
               <a
                 key={link.name}
                 href={link.href}
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  setIsOpen(false);
+                  if (link.name === 'Biblioteca Digital' && onOpenLibrary) {
+                    e.preventDefault();
+                    onOpenLibrary();
+                  }
+                }}
                 className="hover:bg-emerald-700 hover:text-emerald-200 block px-3 py-2 rounded-md text-base font-medium"
               >
                 {link.name}
               </a>
             ))}
             <div className="pt-2 border-t border-emerald-700/80 space-y-2">
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  if (onOpenLibrary) onOpenLibrary();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 transition-colors cursor-pointer shadow-sm"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Biblioteca Digital Escolar (Catálogo & Reservas)</span>
+              </button>
+
               <button
                 onClick={() => {
                   setIsOpen(false);

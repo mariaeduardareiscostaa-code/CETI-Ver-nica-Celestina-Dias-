@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { ShieldAlert, MapPin, Sparkles, Users, ArrowDown, Image as ImageIcon, Award } from 'lucide-react';
+import { ShieldAlert, MapPin, Sparkles, Users, ArrowDown, Image as ImageIcon, Award, BookOpen } from 'lucide-react';
 import fachadaImg from '../assets/images/cetifrente2.jpeg';
 import patioImg from '../assets/images/cetipatio.jpeg';
 import escadaImg from '../assets/images/cetiescada (1).jpeg';
 
 interface HeroProps {
   onOpenBullyingReport?: () => void;
+  onOpenLibrary?: () => void;
 }
 
-export default function Hero({ onOpenBullyingReport }: HeroProps) {
+export default function Hero({ onOpenBullyingReport, onOpenLibrary }: HeroProps) {
   const [activePhoto, setActivePhoto] = useState<'fachada' | 'escada' | 'patio'>('fachada');
 
   return (
@@ -46,11 +47,20 @@ export default function Hero({ onOpenBullyingReport }: HeroProps) {
 
             {/* Action Buttons */}
             <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3.5">
+              <button
+                onClick={onOpenLibrary}
+                className="inline-flex items-center justify-center gap-2 bg-emerald-300 hover:bg-emerald-200 text-emerald-950 font-bold px-5 py-3 rounded-xl transition-all shadow-md text-sm sm:text-base active:scale-95 cursor-pointer"
+                title="Acessar o acervo de livros e reservar exemplar online"
+              >
+                <BookOpen className="w-5 h-5 text-emerald-950" />
+                <span>Biblioteca Digital Escolar</span>
+              </button>
+
               <a
                 href="#estrutura"
-                className="inline-flex items-center justify-center gap-2 bg-emerald-400 text-emerald-950 font-bold px-6 py-3 rounded-xl hover:bg-emerald-300 transition-all shadow-md text-sm sm:text-base active:scale-95"
+                className="inline-flex items-center justify-center gap-2 bg-emerald-950/80 hover:bg-emerald-900 text-white border border-emerald-500/50 font-semibold px-5 py-3 rounded-xl transition-all shadow-md text-sm sm:text-base active:scale-95"
               >
-                <span>Ver Fotos Reais da Escola</span>
+                <span>Ver Fotos Reais</span>
                 <ArrowDown className="w-4 h-4" />
               </a>
 
@@ -59,7 +69,7 @@ export default function Hero({ onOpenBullyingReport }: HeroProps) {
                 className="inline-flex items-center justify-center gap-2 bg-emerald-800/80 hover:bg-emerald-800 text-white border border-emerald-400/50 font-semibold px-5 py-3 rounded-xl transition-all shadow-sm text-sm sm:text-base active:scale-95 cursor-pointer"
               >
                 <ShieldAlert className="w-5 h-5 text-emerald-300" />
-                <span>Canal Anônimo Anti-Bullying</span>
+                <span>Canal Anti-Bullying</span>
               </button>
             </div>
           </div>

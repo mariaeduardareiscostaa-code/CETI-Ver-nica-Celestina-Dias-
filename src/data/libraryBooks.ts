@@ -2,7 +2,7 @@ export interface Book {
   id: string;
   title: string;
   author: string;
-  category: 'Literatura Brasileira' | 'Autores do Piauí e Nordeste' | 'ENEM & Vestibulares' | 'Ciências da Natureza' | 'Filosofia & Sociologia' | 'Ficção Juvenil & Contos' | 'Matemática & Tecnologia';
+  category: 'Literatura Brasileira' | 'Autores do Piauí e Nordeste' | 'ENEM & Vestibulares' | 'Ciências da Natureza' | 'Filosofia & Sociologia' | 'Ficção Juvenil & Contos' | 'Matemática & Tecnologia' | string;
   isbn: string;
   year: number;
   pages: number;
@@ -12,6 +12,7 @@ export interface Book {
   totalCopies: number;
   availableCopies: number;
   coverGradient: string;
+  coverImage?: string;
   badge?: string;
   recommendedGrade: string;
   rating: number;
@@ -36,6 +37,64 @@ export interface BookReservation {
   notes?: string;
 }
 
+export interface PresetCover {
+  id: string;
+  label: string;
+  category: string;
+  url: string;
+}
+
+export const PRESET_BOOK_COVERS: PresetCover[] = [
+  {
+    id: 'cov-classico',
+    label: 'Literatura Clássica & Obras Primas',
+    category: 'Literatura Brasileira',
+    url: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=80'
+  },
+  {
+    id: 'cov-nordeste',
+    label: 'Cultura Piauiense & Sertão Nordestino',
+    category: 'Autores do Piauí e Nordeste',
+    url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80'
+  },
+  {
+    id: 'cov-enem',
+    label: 'ENEM, Redação & Cadernos de Estudo',
+    category: 'ENEM & Vestibulares',
+    url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=600&q=80'
+  },
+  {
+    id: 'cov-ciencias',
+    label: 'Ciências da Natureza & Laboratório',
+    category: 'Ciências da Natureza',
+    url: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80'
+  },
+  {
+    id: 'cov-matematica',
+    label: 'Matemática, Robótica & Raciocínio',
+    category: 'Matemática & Tecnologia',
+    url: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=600&q=80'
+  },
+  {
+    id: 'cov-filosofia',
+    label: 'Filosofia, Pedagogia & Humanidades',
+    category: 'Filosofia & Sociologia',
+    url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=600&q=80'
+  },
+  {
+    id: 'cov-ficcao',
+    label: 'Ficção Juvenil, Aventura & Distopia',
+    category: 'Ficção Juvenil & Contos',
+    url: 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?auto=format&fit=crop&w=600&q=80'
+  },
+  {
+    id: 'cov-poesia',
+    label: 'Poesia & Letras Piauienses',
+    category: 'Autores do Piauí e Nordeste',
+    url: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80'
+  }
+];
+
 export const INITIAL_BOOKS: Book[] = [
   {
     id: 'book-01',
@@ -51,6 +110,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 6,
     availableCopies: 4,
     coverGradient: 'from-amber-700 to-amber-950',
+    coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=80',
     badge: 'Leitura Obrigatória ENEM',
     recommendedGrade: '1º ao 3º Ano do Ensino Médio',
     rating: 4.9,
@@ -70,6 +130,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 5,
     availableCopies: 3,
     coverGradient: 'from-orange-800 to-amber-950',
+    coverImage: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80',
     badge: 'Destaque Regional',
     recommendedGrade: '2º e 3º Ano do Ensino Médio',
     rating: 4.8,
@@ -89,6 +150,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 4,
     availableCopies: 2,
     coverGradient: 'from-stone-700 to-emerald-950',
+    coverImage: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=600&q=80',
     badge: 'Naturalismo Brasileiro',
     recommendedGrade: '1º e 2º Ano do Ensino Médio',
     rating: 4.7,
@@ -108,6 +170,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 5,
     availableCopies: 5,
     coverGradient: 'from-emerald-700 to-emerald-950',
+    coverImage: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80',
     badge: 'Patrimônio do Piauí',
     recommendedGrade: 'Todos os Anos',
     rating: 4.9,
@@ -127,6 +190,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 8,
     availableCopies: 6,
     coverGradient: 'from-blue-700 to-indigo-950',
+    coverImage: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=600&q=80',
     badge: 'Mais Procurado ENEM',
     recommendedGrade: '3º Ano e Pré-Vestibular',
     rating: 5.0,
@@ -146,6 +210,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 6,
     availableCopies: 2,
     coverGradient: 'from-yellow-800 to-stone-900',
+    coverImage: 'https://images.unsplash.com/photo-1532012164546-f432f2e37b73?auto=format&fit=crop&w=600&q=80',
     badge: 'Clássico Fundamental',
     recommendedGrade: '2º e 3º Ano do Ensino Médio',
     rating: 4.9,
@@ -165,6 +230,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 4,
     availableCopies: 3,
     coverGradient: 'from-teal-800 to-emerald-950',
+    coverImage: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=600&q=80',
     badge: 'Referência Cidadã',
     recommendedGrade: 'Ensino Médio e Formação Cidadã',
     rating: 4.9,
@@ -184,6 +250,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 5,
     availableCopies: 1,
     coverGradient: 'from-rose-900 to-purple-950',
+    coverImage: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=600&q=80',
     badge: 'Último Exemplar Disponível',
     recommendedGrade: '3º Ano do Ensino Médio',
     rating: 4.8,
@@ -203,6 +270,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 5,
     availableCopies: 4,
     coverGradient: 'from-cyan-800 to-blue-950',
+    coverImage: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=600&q=80',
     badge: 'Matemática Divertida',
     recommendedGrade: '1º, 2º e 3º Anos',
     rating: 4.9,
@@ -222,6 +290,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 4,
     availableCopies: 3,
     coverGradient: 'from-sky-700 to-slate-900',
+    coverImage: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80',
     badge: 'Ciência & Sustentabilidade',
     recommendedGrade: '1º e 2º Ano do Ensino Médio',
     rating: 4.7,
@@ -241,6 +310,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 5,
     availableCopies: 2,
     coverGradient: 'from-slate-800 to-zinc-950',
+    coverImage: 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?auto=format&fit=crop&w=600&q=80',
     badge: 'Distopia Mundial',
     recommendedGrade: '2º e 3º Ano do Ensino Médio',
     rating: 4.9,
@@ -260,6 +330,7 @@ export const INITIAL_BOOKS: Book[] = [
     totalCopies: 6,
     availableCopies: 5,
     coverGradient: 'from-amber-800 to-emerald-950',
+    coverImage: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80',
     badge: 'Acervo Local de Campo Alegre',
     recommendedGrade: 'Todos os Alunos',
     rating: 5.0,

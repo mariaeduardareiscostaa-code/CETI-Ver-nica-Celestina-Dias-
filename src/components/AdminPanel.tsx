@@ -25,9 +25,13 @@ import {
   BookmarkCheck,
   Phone,
   Users,
-  User
+  User,
+  Plus,
+  Trash2,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
-import { BookReservation, Book, INITIAL_BOOKS } from '../data/libraryBooks';
+import { BookReservation, Book, INITIAL_BOOKS, PRESET_BOOK_COVERS } from '../data/libraryBooks';
 
 interface AdminPanelProps {
   onBackToHome: () => void;
@@ -101,6 +105,18 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
   const [librarySearch, setLibrarySearch] = useState('');
   const [libraryFilter, setLibraryFilter] = useState<string>('todos');
   const [libraryFeedback, setLibraryFeedback] = useState('');
+  const [librarySubTab, setLibrarySubTab] = useState<'reservations' | 'catalog'>('reservations');
+
+  // Book management in admin
+  const [showAdminAddBookModal, setShowAdminAddBookModal] = useState(false);
+  const [adminBookTitle, setAdminBookTitle] = useState('');
+  const [adminBookAuthor, setAdminBookAuthor] = useState('');
+  const [adminBookCategory, setAdminBookCategory] = useState('Literatura Brasileira');
+  const [adminBookCopies, setAdminBookCopies] = useState(5);
+  const [adminBookShelf, setAdminBookShelf] = useState('Estante 01 · Prateleira A');
+  const [adminBookCover, setAdminBookCover] = useState('');
+  const [adminBookForCover, setAdminBookForCover] = useState<Book | null>(null);
+  const [adminCoverInput, setAdminCoverInput] = useState('');
 
   // Initial load and seed
   useEffect(() => {
@@ -286,6 +302,67 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
     setLibraryReservations(updated);
     localStorage.setItem('vcd_library_reservations', JSON.stringify(updated));
     setLibraryFeedback(`Status da reserva ${reservationId} atualizado para: "${newStatus}"`);
+    setTimeout(() => setLibraryFeedback(''), 3500);
+  };
+
+  const handleAddBookAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminBookTitle.trim() || !adminBookAuthor.trim()) return;
+
+    const newBook: Book = {
+      id: `book-${Date.now().toString().slice(-6)}`,
+      title: adminBookTitle.trim(),
+      author: adminBookAuthor.trim(),
+      category: adminBookCategory as Book['category'],
+      isbn: `978-85-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(10 + Math.random() * 90)}-0`,
+      year: new Date().getFullYear(),
+      pages: 180,
+      publisher: 'Acervo SEDUC-PI / CETI',
+      synopsis: 'Obra inserida pela gestão escolar para estudo, pesquisa e desenvolvimento literário.',
+      shelfLocation: adminBookShelf.trim() || 'Estante 01 · Geral',
+      totalCopies: Number(adminBookCopies) || 5,
+      availableCopies: Number(adminBookCopies) || 5,
+      coverGradient: 'from-emerald-700 to-emerald-950',
+      coverImage: adminBookCover.trim() || undefined,
+      badge: 'Acervo Escolar',
+      recommendedGrade: 'Ensino Médio Integral',
+      rating: 5.0,
+      tags: ['Acervo Escolar', 'SEDUC']
+    };
+
+    const updated = [newBook, ...libraryBooks];
+    setLibraryBooks(updated);
+    localStorage.setItem('vcd_library_books', JSON.stringify(updated));
+    setShowAdminAddBookModal(false);
+    setAdminBookTitle('');
+    setAdminBookAuthor('');
+    setAdminBookCover('');
+    setLibraryFeedback(`Livro "${newBook.title}" adicionado ao acervo com sucesso!`);
+    setTimeout(() => setLibraryFeedback(''), 3500);
+  };
+
+  const handleDeleteBookAdmin = (book: Book) => {
+    if (window.confirm(`Deseja realmente remover o livro "${book.title}" do acervo escolar?`)) {
+      const updated = libraryBooks.filter(b => b.id !== book.id);
+      setLibraryBooks(updated);
+      localStorage.setItem('vcd_library_books', JSON.stringify(updated));
+      setLibraryFeedback(`Livro "${book.title}" removido do catálogo com sucesso.`);
+      setTimeout(() => setLibraryFeedback(''), 3500);
+    }
+  };
+
+  const handleSaveCoverAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminBookForCover) return;
+    const newCover = adminCoverInput.trim();
+    const updated = libraryBooks.map(b => 
+      b.id === adminBookForCover.id ? { ...b, coverImage: newCover || undefined } : b
+    );
+    setLibraryBooks(updated);
+    localStorage.setItem('vcd_library_books', JSON.stringify(updated));
+    setAdminBookForCover(null);
+    setAdminCoverInput('');
+    setLibraryFeedback(`Capa do livro "${adminBookForCover.title}" atualizada com sucesso!`);
     setTimeout(() => setLibraryFeedback(''), 3500);
   };
 
@@ -813,18 +890,47 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
               <div>
                 <h3 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-emerald-800" />
-                  <span>Gestão da Biblioteca Escolar & Reservas de Alunos</span>
+                  <span>Gestão da Biblioteca Escolar</span>
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Acompanhe e despache os pedidos de reserva de livros feitos pelos estudantes do CETI.
+                  Gerencie o catálogo de livros, adicione capas e acompanhe os pedidos de reserva dos alunos.
                 </p>
               </div>
 
-              {/* Acervo inventory pill */}
-              <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 text-xs font-semibold text-emerald-900">
-                <span>Acervo: <strong>{libraryBooks.length}</strong> títulos</span>
-                <span>·</span>
-                <span><strong>{libraryBooks.reduce((a, b) => a + b.availableCopies, 0)}</strong> de <strong>{libraryBooks.reduce((a, b) => a + b.totalCopies, 0)}</strong> livros livres</span>
+              {/* Sub tabs and actions */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex bg-stone-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setLibrarySubTab('reservations')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      librarySubTab === 'reservations'
+                        ? 'bg-white text-emerald-900 shadow-xs'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                  >
+                    Reservas ({libraryReservations.length})
+                  </button>
+                  <button
+                    onClick={() => setLibrarySubTab('catalog')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      librarySubTab === 'catalog'
+                        ? 'bg-white text-emerald-900 shadow-xs'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                  >
+                    Catálogo de Livros ({libraryBooks.length})
+                  </button>
+                </div>
+
+                {librarySubTab === 'catalog' && (
+                  <button
+                    onClick={() => setShowAdminAddBookModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Adicionar Livro</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -835,175 +941,441 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
               </div>
             )}
 
-            {/* Filter & Search Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
-              <div className="relative w-full sm:w-96">
-                <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
-                <input
-                  type="text"
-                  placeholder="Buscar por aluno, matrícula, livro ou protocolo..."
-                  value={librarySearch}
-                  onChange={(e) => setLibrarySearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 bg-white"
-                />
-              </div>
-
-              <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto text-xs">
-                {['todos', 'Pendente para Retirada', 'Retirado / Emprestado', 'Devolvido', 'Cancelado'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setLibraryFilter(status)}
-                    className={`px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap cursor-pointer ${
-                      libraryFilter === status
-                        ? 'bg-emerald-800 text-white'
-                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                    }`}
-                  >
-                    {status === 'todos' ? 'Todas as Reservas' : status}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Reservations List */}
-            {(() => {
-              const filtered = libraryReservations.filter((res) => {
-                const matchesSearch =
-                  res.studentName.toLowerCase().includes(librarySearch.toLowerCase()) ||
-                  res.studentMatricula.toLowerCase().includes(librarySearch.toLowerCase()) ||
-                  res.bookTitle.toLowerCase().includes(librarySearch.toLowerCase()) ||
-                  res.id.toLowerCase().includes(librarySearch.toLowerCase());
-                const matchesFilter = libraryFilter === 'todos' || res.status === libraryFilter;
-                return matchesSearch && matchesFilter;
-              });
-
-              if (filtered.length === 0) {
-                return (
-                  <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-200/80 p-6 space-y-2">
-                    <BookmarkCheck className="w-8 h-8 text-stone-400 mx-auto" />
-                    <p className="text-sm font-semibold text-stone-700">Nenhuma reserva encontrada</p>
-                    <p className="text-xs text-stone-500">Tente alterar os termos da busca ou os filtros de status.</p>
+            {/* SUB-TAB 1: RESERVATIONS */}
+            {librarySubTab === 'reservations' && (
+              <div className="space-y-4">
+                {/* Filter & Search Bar */}
+                <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
+                  <div className="relative w-full sm:w-96">
+                    <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por aluno, matrícula, livro ou protocolo..."
+                      value={librarySearch}
+                      onChange={(e) => setLibrarySearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 bg-white"
+                    />
                   </div>
-                );
-              }
 
-              return (
-                <div className="space-y-3">
-                  {filtered.map((res) => {
-                    const isPending = res.status === 'Pendente para Retirada';
-                    const isBorrowed = res.status === 'Retirado / Emprestado';
-                    const isReturned = res.status === 'Devolvido';
-                    const isCancelled = res.status === 'Cancelado';
-
-                    return (
-                      <div
-                        key={res.id}
-                        className="p-4 rounded-2xl border border-stone-200 hover:border-emerald-300 bg-stone-50/50 hover:bg-white transition-all space-y-3 shadow-xs"
+                  <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto text-xs">
+                    {['todos', 'Pendente para Retirada', 'Retirado / Emprestado', 'Devolvido', 'Cancelado'].map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => setLibraryFilter(status)}
+                        className={`px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                          libraryFilter === status
+                            ? 'bg-emerald-800 text-white'
+                            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                        }`}
                       >
-                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-stone-200/80 pb-2.5">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-xs font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded">
-                                {res.id}
-                              </span>
-                              <span className="text-xs text-stone-500">
-                                Solicitado em: {new Date(res.reservationDate).toLocaleDateString('pt-BR')} às {new Date(res.reservationDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <h4 className="text-base font-bold text-emerald-950 mt-1">
-                              {res.bookTitle}
-                            </h4>
-                            <p className="text-xs text-stone-600">Autor: {res.bookAuthor} · {res.shelfLocation}</p>
-                          </div>
+                        {status === 'todos' ? 'Todas as Reservas' : status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                          <div>
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                                isPending
-                                  ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                  : isBorrowed
-                                  ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                                  : isReturned
-                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                  : 'bg-red-100 text-red-800 border border-red-200'
-                              }`}
-                            >
-                              {isPending && <Clock className="w-3.5 h-3.5" />}
-                              {isBorrowed && <BookOpen className="w-3.5 h-3.5" />}
-                              {isReturned && <CheckCircle2 className="w-3.5 h-3.5" />}
-                              {isCancelled && <AlertCircle className="w-3.5 h-3.5" />}
-                              <span>{res.status}</span>
-                            </span>
-                          </div>
-                        </div>
+                {/* Reservations List */}
+                {(() => {
+                  const filtered = libraryReservations.filter((res) => {
+                    const matchesSearch =
+                      res.studentName.toLowerCase().includes(librarySearch.toLowerCase()) ||
+                      res.studentMatricula.toLowerCase().includes(librarySearch.toLowerCase()) ||
+                      res.bookTitle.toLowerCase().includes(librarySearch.toLowerCase()) ||
+                      res.id.toLowerCase().includes(librarySearch.toLowerCase());
+                    const matchesFilter = libraryFilter === 'todos' || res.status === libraryFilter;
+                    return matchesSearch && matchesFilter;
+                  });
 
-                        {/* Student Info & Deadlines */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                          <div className="p-2.5 bg-white rounded-xl border border-stone-200">
-                            <span className="text-stone-500 block font-medium">Estudante:</span>
-                            <span className="font-bold text-stone-800 text-sm">{res.studentName}</span>
-                            <div className="text-stone-600 font-mono text-[11px] mt-0.5">Matrícula: {res.studentMatricula}</div>
-                            <div className="text-stone-600 text-[11px]">Turma: {res.studentGrade}</div>
-                          </div>
-
-                          <div className="p-2.5 bg-white rounded-xl border border-stone-200">
-                            <span className="text-stone-500 block font-medium">Contato & Observação:</span>
-                            <span className="font-medium text-stone-800">{res.studentContact}</span>
-                            <p className="text-stone-600 text-[11px] mt-1 line-clamp-2">
-                              {res.notes || 'Sem anotações adicionais'}
-                            </p>
-                          </div>
-
-                          <div className="p-2.5 bg-white rounded-xl border border-stone-200">
-                            <span className="text-stone-500 block font-medium">Prazos de Retirada / Devolução:</span>
-                            <div className="text-amber-800 font-semibold text-[11px]">
-                              Retirada até: {new Date(res.pickupDeadline).toLocaleDateString('pt-BR')} (48h)
-                            </div>
-                            <div className="text-stone-600 text-[11px] mt-0.5">
-                              Devolução: {new Date(res.returnDeadline).toLocaleDateString('pt-BR')} (14 dias)
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Management Actions */}
-                        <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-stone-200/60">
-                          {isPending && (
-                            <button
-                              onClick={() => handleUpdateReservationStatus(res.id, 'Retirado / Emprestado')}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold shadow-xs cursor-pointer"
-                            >
-                              <BookOpen className="w-3.5 h-3.5" />
-                              <span>Confirmar Entrega ao Aluno</span>
-                            </button>
-                          )}
-
-                          {isBorrowed && (
-                            <button
-                              onClick={() => handleUpdateReservationStatus(res.id, 'Devolvido')}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs cursor-pointer"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Registrar Devolução à Biblioteca</span>
-                            </button>
-                          )}
-
-                          {isPending && (
-                            <button
-                              onClick={() => handleUpdateReservationStatus(res.id, 'Cancelado')}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold cursor-pointer"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                              <span>Cancelar Pedido</span>
-                            </button>
-                          )}
-                        </div>
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-200/80 p-6 space-y-2">
+                        <BookmarkCheck className="w-8 h-8 text-stone-400 mx-auto" />
+                        <p className="text-sm font-semibold text-stone-700">Nenhuma reserva encontrada</p>
+                        <p className="text-xs text-stone-500">Tente alterar os termos da busca ou os filtros de status.</p>
                       </div>
                     );
-                  })}
-                </div>
-              );
-            })()}
+                  }
 
+                  return (
+                    <div className="space-y-3">
+                      {filtered.map((res) => {
+                        const isPending = res.status === 'Pendente para Retirada';
+                        const isBorrowed = res.status === 'Retirado / Emprestado';
+                        const isReturned = res.status === 'Devolvido';
+                        const isCancelled = res.status === 'Cancelado';
+
+                        return (
+                          <div
+                            key={res.id}
+                            className="p-4 rounded-2xl border border-stone-200 hover:border-emerald-300 bg-stone-50/50 hover:bg-white transition-all space-y-3 shadow-xs"
+                          >
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-stone-200/80 pb-2.5">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-xs font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded">
+                                    {res.id}
+                                  </span>
+                                  <span className="text-xs text-stone-500">
+                                    Solicitado em: {new Date(res.reservationDate).toLocaleDateString('pt-BR')} às {new Date(res.reservationDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <h4 className="text-base font-bold text-emerald-950 mt-1">
+                                  {res.bookTitle}
+                                </h4>
+                                <p className="text-xs text-stone-600">Autor: {res.bookAuthor} · {res.shelfLocation}</p>
+                              </div>
+
+                              <div>
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                    isPending
+                                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                      : isBorrowed
+                                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                      : isReturned
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                      : 'bg-red-100 text-red-800 border border-red-200'
+                                  }`}
+                                >
+                                  {isPending && <Clock className="w-3.5 h-3.5" />}
+                                  {isBorrowed && <BookOpen className="w-3.5 h-3.5" />}
+                                  {isReturned && <CheckCircle2 className="w-3.5 h-3.5" />}
+                                  {isCancelled && <AlertCircle className="w-3.5 h-3.5" />}
+                                  <span>{res.status}</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Student Info & Deadlines */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                              <div className="p-2.5 bg-white rounded-xl border border-stone-200">
+                                <span className="text-stone-500 block font-medium">Estudante:</span>
+                                <span className="font-bold text-stone-800 text-sm">{res.studentName}</span>
+                                <div className="text-stone-600 font-mono text-[11px] mt-0.5">Matrícula: {res.studentMatricula}</div>
+                                <div className="text-stone-600 text-[11px]">Turma: {res.studentGrade}</div>
+                              </div>
+
+                              <div className="p-2.5 bg-white rounded-xl border border-stone-200">
+                                <span className="text-stone-500 block font-medium">Contato & Observação:</span>
+                                <span className="font-medium text-stone-800">{res.studentContact}</span>
+                                <p className="text-stone-600 text-[11px] mt-1 line-clamp-2">
+                                  {res.notes || 'Sem anotações adicionais'}
+                                </p>
+                              </div>
+
+                              <div className="p-2.5 bg-white rounded-xl border border-stone-200">
+                                <span className="text-stone-500 block font-medium">Prazos de Retirada / Devolução:</span>
+                                <div className="text-amber-800 font-semibold text-[11px]">
+                                  Retirada até: {new Date(res.pickupDeadline).toLocaleDateString('pt-BR')} (48h)
+                                </div>
+                                <div className="text-stone-600 text-[11px] mt-0.5">
+                                  Devolução: {new Date(res.returnDeadline).toLocaleDateString('pt-BR')} (14 dias)
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Management Actions */}
+                            <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-stone-200/60">
+                              {isPending && (
+                                <button
+                                  onClick={() => handleUpdateReservationStatus(res.id, 'Retirado / Emprestado')}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold shadow-xs cursor-pointer"
+                                >
+                                  <BookOpen className="w-3.5 h-3.5" />
+                                  <span>Confirmar Entrega ao Aluno</span>
+                                </button>
+                              )}
+
+                              {isBorrowed && (
+                                <button
+                                  onClick={() => handleUpdateReservationStatus(res.id, 'Devolvido')}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs cursor-pointer"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Registrar Devolução à Biblioteca</span>
+                                </button>
+                              )}
+
+                              {isPending && (
+                                <button
+                                  onClick={() => handleUpdateReservationStatus(res.id, 'Cancelado')}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  <span>Cancelar Pedido</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* SUB-TAB 2: CATALOG MANAGEMENT (ADD / REMOVE / CHANGE COVERS) */}
+            {librarySubTab === 'catalog' && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+                  <p className="text-xs text-stone-600">
+                    Obras disponíveis na biblioteca escolar do CETI. Você pode adicionar novas obras, remover títulos e atualizar capas.
+                  </p>
+                  <button
+                    onClick={() => setShowAdminAddBookModal(true)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Cadastrar Novo Livro</span>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto border border-stone-200 rounded-2xl">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-stone-50 border-b border-stone-200 text-stone-600 font-semibold uppercase text-[10px] tracking-wider">
+                        <th className="py-3 px-3">Capa</th>
+                        <th className="py-3 px-3">Obra & Autor</th>
+                        <th className="py-3 px-3">Categoria</th>
+                        <th className="py-3 px-3">Localização</th>
+                        <th className="py-3 px-3 text-center">Exemplares</th>
+                        <th className="py-3 px-3 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-200">
+                      {libraryBooks.map((b) => (
+                        <tr key={b.id} className="hover:bg-stone-50/80 transition-colors">
+                          <td className="py-2.5 px-3">
+                            {b.coverImage ? (
+                              <img
+                                src={b.coverImage}
+                                alt={b.title}
+                                className="w-9 h-12 object-cover rounded shadow-xs border border-stone-200"
+                              />
+                            ) : (
+                              <div className={`w-9 h-12 rounded bg-gradient-to-r ${b.coverGradient} flex items-center justify-center text-white/50 text-[10px]`}>
+                                <ImageIcon className="w-4 h-4" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <div className="font-bold text-stone-900 text-sm">{b.title}</div>
+                            <div className="text-stone-500 text-xs">{b.author}</div>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-medium">
+                              {b.category}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-stone-600 max-w-[180px] truncate">
+                            {b.shelfLocation}
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-bold text-emerald-800">
+                            {b.availableCopies} / {b.totalCopies}
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setAdminBookForCover(b);
+                                  setAdminCoverInput(b.coverImage || '');
+                                }}
+                                className="px-2 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs flex items-center gap-1 cursor-pointer"
+                                title="Alterar ou adicionar capa"
+                              >
+                                <ImageIcon className="w-3.5 h-3.5 text-stone-500" />
+                                <span>{b.coverImage ? 'Capa' : '+ Capa'}</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteBookAdmin(b)}
+                                className="p-1 rounded-lg text-red-600 hover:bg-red-50 cursor-pointer"
+                                title="Remover livro do acervo"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* Modal: Admin Add Book */}
+        {showAdminAddBookModal && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+            <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-stone-200 space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                <h3 className="font-bold text-emerald-950 text-lg">Adicionar Livro ao Catálogo</h3>
+                <button
+                  onClick={() => setShowAdminAddBookModal(false)}
+                  className="p-1 text-stone-400 hover:text-stone-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddBookAdmin} className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Título da Obra *</label>
+                  <input
+                    type="text"
+                    required
+                    value={adminBookTitle}
+                    onChange={(e) => setAdminBookTitle(e.target.value)}
+                    placeholder="Ex: Senhora"
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Autor(a) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={adminBookAuthor}
+                    onChange={(e) => setAdminBookAuthor(e.target.value)}
+                    placeholder="Ex: José de Alencar"
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">Categoria</label>
+                    <select
+                      value={adminBookCategory}
+                      onChange={(e) => setAdminBookCategory(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                    >
+                      <option value="Literatura Brasileira">Literatura Brasileira</option>
+                      <option value="Autores do Piauí e Nordeste">Autores do Piauí e Nordeste</option>
+                      <option value="ENEM & Vestibulares">ENEM & Vestibulares</option>
+                      <option value="Ciências da Natureza">Ciências da Natureza</option>
+                      <option value="Filosofia & Sociologia">Filosofia & Sociologia</option>
+                      <option value="Ficção Juvenil & Contos">Ficção Juvenil & Contos</option>
+                      <option value="Matemática & Tecnologia">Matemática & Tecnologia</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">Total Exemplares</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={adminBookCopies}
+                      onChange={(e) => setAdminBookCopies(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Localização na Estante</label>
+                  <input
+                    type="text"
+                    value={adminBookShelf}
+                    onChange={(e) => setAdminBookShelf(e.target.value)}
+                    placeholder="Ex: Estante 01 · Prateleira A"
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Link (URL) da Capa do Livro</label>
+                  <input
+                    type="url"
+                    value={adminBookCover}
+                    onChange={(e) => setAdminBookCover(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminAddBookModal(false)}
+                    className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold"
+                  >
+                    Salvar Livro
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Admin Change Cover */}
+        {adminBookForCover && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-stone-200 space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                <h3 className="font-bold text-emerald-950 text-base">Adicionar / Alterar Capa</h3>
+                <button
+                  onClick={() => setAdminBookForCover(null)}
+                  className="p-1 text-stone-400 hover:text-stone-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCoverAdmin} className="space-y-3 text-xs">
+                <p className="text-stone-600">
+                  Livro: <strong className="text-emerald-950">{adminBookForCover.title}</strong>
+                </p>
+
+                {adminCoverInput && (
+                  <div className="flex justify-center py-2">
+                    <img
+                      src={adminCoverInput}
+                      alt="Prévia"
+                      className="w-24 h-36 object-cover rounded-xl shadow border border-stone-200"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">URL da Imagem da Capa</label>
+                  <input
+                    type="url"
+                    required
+                    value={adminCoverInput}
+                    onChange={(e) => setAdminCoverInput(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 text-xs"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAdminBookForCover(null)}
+                    className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold"
+                  >
+                    Atualizar Capa
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 

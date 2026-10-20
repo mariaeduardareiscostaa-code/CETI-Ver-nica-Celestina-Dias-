@@ -934,7 +934,7 @@ export default function SchoolInfoPage({
                   <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
                     <p className="text-xs text-emerald-800 font-bold uppercase tracking-wider">Modalidade de Ensino</p>
                     <p className="font-black text-base text-stone-900 mt-0.5">Ensino Médio em Tempo Integral</p>
-                    <p className="text-xs text-stone-600 mt-1">1ª, 2ª e 3ª Série com Itinerários Formativos.</p>
+                    <p className="text-xs text-stone-600 mt-1">1ª e 2ª Séries e 3ª Série Técnica (Desenv. de Sistemas e Controle Ambiental).</p>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">

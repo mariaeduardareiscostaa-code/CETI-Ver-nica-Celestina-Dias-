@@ -24,7 +24,7 @@ export default function SchoolInfoBanner({ onOpenSchoolInfo }: SchoolInfoBannerP
               Grade de Horários & Informações da Escola
             </h3>
             <p className="text-emerald-100/90 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-              Consulte a grade completa de aulas da 1ª, 2ª e 3ª Série, horários da rotina de tempo integral (07h às 17h), cardápio das 4 refeições, calendário escolar e normas de convivência.
+              Consulte a grade completa de aulas da 1ª, 2ª e 3ª Série Técnica (Desenvolvimento de Sistemas & Controle Ambiental), horários da rotina integral (07h às 17h), cardápio das refeições, calendário escolar e normas.
             </p>
           </div>
         </div>

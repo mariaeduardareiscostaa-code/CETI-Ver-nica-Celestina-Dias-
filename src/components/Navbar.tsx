@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, X, GraduationCap, ShieldAlert, Lock, BookOpen } from 'lucide-react';
+import { Menu, X, ShieldAlert, Lock, BookOpen } from 'lucide-react';
 
 interface NavbarProps {
   onOpenBullyingReport?: () => void;
@@ -23,8 +23,12 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
     <nav className="bg-emerald-900 text-white sticky top-0 z-50 shadow-md border-b border-emerald-800/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3">
-          <div className="flex items-center gap-2 shrink-0">
-            <GraduationCap className="h-8 w-8 text-emerald-300" />
+          <div className="flex items-center gap-2.5 shrink-0">
+            <img 
+              src="/assets/aistudio/branco_transparente_0a853876.png" 
+              alt="Logo CETI Verônica Celestina Dias" 
+              className="h-9 w-9 sm:h-10 sm:w-10 object-contain shrink-0 drop-shadow-sm" 
+            />
             <span className="font-bold text-xl tracking-tight hidden sm:block">CETI Verônica Celestina Dias</span>
             <span className="font-bold text-xl tracking-tight sm:hidden">CETI VCD</span>
           </div>

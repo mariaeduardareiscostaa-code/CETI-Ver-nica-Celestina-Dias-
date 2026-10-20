@@ -111,6 +111,7 @@ export default function App() {
         onOpenAdminLogin={openAdminLogin}
         onOpenLibrary={openLibrary}
         onOpenSchoolInfo={openSchoolInfo}
+        onBackToHome={backToHome}
       />
       <main className="flex-grow">
         <Hero 

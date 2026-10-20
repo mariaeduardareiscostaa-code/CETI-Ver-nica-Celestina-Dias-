@@ -1,213 +1,357 @@
-import React from 'react';
-import { Menu, X, ShieldAlert, Lock, BookOpen, CalendarDays } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  Menu, 
+  X, 
+  ShieldAlert, 
+  Lock, 
+  BookOpen, 
+  CalendarDays, 
+  ChevronDown, 
+  Users, 
+  Building2, 
+  Info,
+  ChevronRight
+} from 'lucide-react';
 
 interface NavbarProps {
   onOpenBullyingReport?: () => void;
   onOpenAdminLogin?: () => void;
   onOpenLibrary?: () => void;
   onOpenSchoolInfo?: () => void;
+  onBackToHome?: () => void;
 }
 
-export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenLibrary, onOpenSchoolInfo }: NavbarProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
+export default function Navbar({ 
+  onOpenBullyingReport, 
+  onOpenAdminLogin, 
+  onOpenLibrary, 
+  onOpenSchoolInfo,
+  onBackToHome 
+}: NavbarProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSchoolDropdownOpen, setIsSchoolDropdownOpen] = useState(false);
+  const [isMobileSchoolExpanded, setIsMobileSchoolExpanded] = useState(true);
 
-  const links = [
-    { name: 'Início', href: '#inicio' },
-    { name: 'Grade de Horários', href: '#horarios-escola' },
-    { name: 'Sobre Nós', href: '#sobre' },
-    { name: 'Estrutura & Fotos', href: '#estrutura' },
-    { name: 'Biblioteca Digital', href: '#biblioteca' },
-    { name: 'Informações', href: '#info' },
-    { name: 'Contato', href: '#contato' },
-  ];
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsSchoolDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleHomeClick = (e: React.MouseEvent) => {
+    if (onBackToHome) {
+      onBackToHome();
+    }
+  };
 
   return (
-    <nav className="bg-emerald-900 text-white sticky top-0 z-50 shadow-md border-b border-emerald-800/60">
+    <nav className="bg-emerald-900 text-white sticky top-0 z-50 shadow-md border-b border-emerald-800/70">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-3">
-          <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center justify-between h-16 sm:h-18 gap-4">
+          
+          {/* Brand / Logo */}
+          <a 
+            href="#inicio" 
+            onClick={handleHomeClick}
+            className="flex items-center gap-2.5 shrink-0 group cursor-pointer"
+            title="Ir para o início"
+          >
             <img 
               src="/assets/aistudio/branco_transparente_0a853876.png" 
               alt="Logo CETI Verônica Celestina Dias" 
-              className="h-9 w-9 sm:h-10 sm:w-10 object-contain shrink-0 drop-shadow-sm" 
+              className="h-9 w-9 sm:h-10 sm:w-10 object-contain shrink-0 drop-shadow-sm brightness-110 group-hover:scale-105 transition-transform" 
             />
-            <span className="font-bold text-xl tracking-tight hidden sm:block">CETI Verônica Celestina Dias</span>
-            <span className="font-bold text-xl tracking-tight sm:hidden">CETI VCD</span>
-          </div>
+            <div className="leading-tight">
+              <span className="font-bold text-lg sm:text-xl tracking-tight text-white block">
+                CETI Verônica Celestina Dias
+              </span>
+              <span className="text-[10px] text-emerald-300 font-medium hidden sm:block">
+                Ensino Médio em Tempo Integral · SEDUC Piauí
+              </span>
+            </div>
+          </a>
           
-          <div className="hidden lg:flex items-center space-x-2">
-            {links.map((link) => {
-              if (link.name === 'Grade de Horários' && onOpenSchoolInfo) {
-                return (
-                  <button
-                    key={link.name}
-                    onClick={onOpenSchoolInfo}
-                    className="hover:bg-emerald-800 hover:text-emerald-200 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <CalendarDays className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>{link.name}</span>
-                  </button>
-                );
-              }
-              if (link.name === 'Biblioteca Digital' && onOpenLibrary) {
-                return (
-                  <button
-                    key={link.name}
-                    onClick={onOpenLibrary}
-                    className="hover:bg-emerald-800 hover:text-emerald-200 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>{link.name}</span>
-                  </button>
-                );
-              }
-              return (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="hover:bg-emerald-800 hover:text-emerald-200 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  {link.name}
-                </a>
-              );
-            })}
-          </div>
+          {/* Main Clean Navigation Links (Desktop) */}
+          <div className="hidden md:flex items-center space-x-1 lg:space-x-2">
+            
+            {/* 1. Início */}
+            <a
+              href="#inicio"
+              onClick={handleHomeClick}
+              className="hover:bg-emerald-800 hover:text-emerald-200 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer text-emerald-50"
+            >
+              Início
+            </a>
 
-          {/* Action Buttons: Grade Shortcut + Biblioteca Shortcut + Bullying Report + Admin Login */}
-          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            {/* 2. A Escola (Dropdown with Sobre Nós, Estrutura, Informações) */}
+            <div 
+              className="relative" 
+              ref={dropdownRef}
+              onMouseEnter={() => setIsSchoolDropdownOpen(true)}
+              onMouseLeave={() => setIsSchoolDropdownOpen(false)}
+            >
+              <button
+                type="button"
+                onClick={() => setIsSchoolDropdownOpen(prev => !prev)}
+                className={`hover:bg-emerald-800 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  isSchoolDropdownOpen ? 'bg-emerald-800 text-emerald-200' : 'text-emerald-50 hover:text-emerald-200'
+                }`}
+                aria-expanded={isSchoolDropdownOpen}
+              >
+                <span>A Escola</span>
+                <ChevronDown className={`w-4 h-4 text-emerald-300 transition-transform duration-200 ${isSchoolDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu Card */}
+              {isSchoolDropdownOpen && (
+                <div className="absolute left-0 top-full pt-1.5 w-64 z-50">
+                  <div className="rounded-2xl bg-emerald-950/95 backdrop-blur-md border border-emerald-700/80 shadow-2xl py-2 overflow-hidden ring-1 ring-black/20">
+                    <a
+                      href="#sobre"
+                      onClick={() => setIsSchoolDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-emerald-100 hover:text-white hover:bg-emerald-850/80 transition-colors group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-emerald-900/80 group-hover:bg-emerald-700 text-emerald-300 transition-colors">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-xs">Sobre Nós</div>
+                        <div className="text-[11px] text-emerald-300/80 font-normal">Nossa proposta e valores</div>
+                      </div>
+                    </a>
+
+                    <a
+                      href="#estrutura"
+                      onClick={() => setIsSchoolDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-emerald-100 hover:text-white hover:bg-emerald-850/80 transition-colors group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-emerald-900/80 group-hover:bg-emerald-700 text-emerald-300 transition-colors">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-xs">Estrutura & Fotos</div>
+                        <div className="text-[11px] text-emerald-300/80 font-normal">Ambientes e fotos reais</div>
+                      </div>
+                    </a>
+
+                    <a
+                      href="#info"
+                      onClick={() => setIsSchoolDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-emerald-100 hover:text-white hover:bg-emerald-850/80 transition-colors group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-emerald-900/80 group-hover:bg-emerald-700 text-emerald-300 transition-colors">
+                        <Info className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-xs">Informações Úteis</div>
+                        <div className="text-[11px] text-emerald-300/80 font-normal">Localização e expediente</div>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Horários */}
             <button
               onClick={onOpenSchoolInfo}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 rounded-lg transition-all whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
-              title="Acessar Grade de Horários e Informações da Escola"
+              className="hover:bg-emerald-800 hover:text-emerald-200 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 text-emerald-50"
+              title="Consultar grade de horários, turmas e rotina integral"
             >
-              <CalendarDays className="w-3.5 h-3.5 text-emerald-950" />
-              <span>Horários & Escola</span>
+              <CalendarDays className="w-4 h-4 text-emerald-300" />
+              <span>Horários</span>
             </button>
 
+            {/* 4. Biblioteca */}
             <button
               onClick={onOpenLibrary}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:text-white bg-emerald-800 hover:bg-emerald-700 border border-emerald-600/60 rounded-lg transition-all whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
-              title="Acessar Catálogo e Reservar Livros na Biblioteca Digital Escolar"
+              className="hover:bg-emerald-800 hover:text-emerald-200 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 text-emerald-50"
+              title="Acessar acervo e reservar livros da biblioteca"
             >
-              <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
+              <BookOpen className="w-4 h-4 text-emerald-300" />
               <span>Biblioteca</span>
             </button>
 
+            {/* 5. Contato */}
+            <a
+              href="#contato"
+              className="hover:bg-emerald-800 hover:text-emerald-200 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer text-emerald-50"
+            >
+              Contato
+            </a>
+
+          </div>
+
+          {/* Secondary Action Area: Discreet and clean (Gestão & Denúncia) */}
+          <div className="hidden lg:flex items-center gap-1.5 pl-2 border-l border-emerald-800/80 text-xs">
             <button
               onClick={onOpenBullyingReport}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-950 bg-emerald-200 hover:bg-emerald-100 rounded-lg transition-colors whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
-              title="Acessar Canal de Denúncia e Acolhimento à Vítima de Bullying"
+              className="text-emerald-200 hover:text-white hover:bg-emerald-800/80 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+              title="Canal de Acolhimento e Denúncia de Bullying"
             >
-              <ShieldAlert className="w-3.5 h-3.5 text-emerald-900" />
-              <span>Denúncia Bullying</span>
+              <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Denúncia</span>
             </button>
 
             <button
               onClick={onOpenAdminLogin}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-100 hover:text-white bg-emerald-950/70 hover:bg-emerald-950 border border-emerald-700/60 rounded-lg transition-colors whitespace-nowrap active:scale-95 cursor-pointer"
-              title="Acesso Administrativo (Direção e Coordenação)"
+              className="text-emerald-200 hover:text-white hover:bg-emerald-800/80 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+              title="Área Administrativa (Gestão Escolar)"
             >
-              <Lock className="w-3 h-3 text-emerald-400" />
+              <Lock className="w-3.5 h-3.5 text-emerald-400" />
               <span>Gestão</span>
             </button>
           </div>
           
-          <div className="flex sm:hidden items-center gap-1.5">
+          {/* Mobile Hamburger Button */}
+          <div className="flex md:hidden items-center">
             <button
-              onClick={onOpenSchoolInfo}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 rounded-md active:scale-95 cursor-pointer"
-              title="Grade de Horários"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-xl text-emerald-200 hover:text-white hover:bg-emerald-800 focus:outline-none cursor-pointer transition-colors"
+              aria-label="Abrir menu de navegação"
             >
-              <CalendarDays className="w-3.5 h-3.5" />
-              <span>Horários</span>
-            </button>
-
-            <button
-              onClick={onOpenLibrary}
-              className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-emerald-100 bg-emerald-800 hover:bg-emerald-700 rounded-md active:scale-95 cursor-pointer"
-              title="Biblioteca"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-emerald-200 hover:text-white hover:bg-emerald-800 focus:outline-none cursor-pointer"
-              aria-label="Abrir menu principal"
-            >
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
+
         </div>
       </div>
 
-      {isOpen && (
-        <div className="md:hidden bg-emerald-800 border-t border-emerald-700/60">
-          <div className="px-3 pt-2 pb-3 space-y-1.5 sm:px-3">
-            {links.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                onClick={(e) => {
-                  setIsOpen(false);
-                  if (link.name === 'Grade de Horários' && onOpenSchoolInfo) {
-                    e.preventDefault();
-                    onOpenSchoolInfo();
-                  } else if (link.name === 'Biblioteca Digital' && onOpenLibrary) {
-                    e.preventDefault();
-                    onOpenLibrary();
-                  }
-                }}
-                className="hover:bg-emerald-700 hover:text-emerald-200 block px-3 py-2 rounded-md text-base font-medium"
-              >
-                {link.name}
-              </a>
-            ))}
-            <div className="pt-2 border-t border-emerald-700/80 space-y-2">
+      {/* Mobile Menu Drawer */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-emerald-950/95 backdrop-blur-md border-t border-emerald-800/90 shadow-2xl">
+          <div className="px-4 pt-3 pb-4 space-y-2">
+            
+            {/* Início */}
+            <a
+              href="#inicio"
+              onClick={(e) => {
+                setIsMobileMenuOpen(false);
+                handleHomeClick(e);
+              }}
+              className="flex items-center justify-between py-2.5 px-3 rounded-xl text-base font-semibold text-emerald-100 hover:text-white hover:bg-emerald-900 transition-colors"
+            >
+              <span>Início</span>
+              <ChevronRight className="w-4 h-4 text-emerald-500" />
+            </a>
+
+            {/* A Escola (Accordion with Sobre Nós, Estrutura, Informações) */}
+            <div className="rounded-2xl bg-emerald-900/40 border border-emerald-800/60 overflow-hidden">
               <button
-                onClick={() => {
-                  setIsOpen(false);
-                  if (onOpenSchoolInfo) onOpenSchoolInfo();
-                }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 transition-colors cursor-pointer shadow-sm"
+                onClick={() => setIsMobileSchoolExpanded(!isMobileSchoolExpanded)}
+                className="w-full flex items-center justify-between py-2.5 px-3 text-base font-semibold text-emerald-100 hover:text-white transition-colors cursor-pointer"
               >
-                <CalendarDays className="w-4 h-4" />
-                <span>Grade de Horários & Informações da Escola</span>
+                <span className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-emerald-300" />
+                  <span>A Escola</span>
+                </span>
+                <ChevronDown className={`w-4 h-4 text-emerald-300 transition-transform ${isMobileSchoolExpanded ? 'rotate-180' : ''}`} />
               </button>
 
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  if (onOpenLibrary) onOpenLibrary();
-                }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold text-white bg-emerald-900 hover:bg-emerald-850 border border-emerald-600/50 transition-colors cursor-pointer shadow-sm"
-              >
+              {isMobileSchoolExpanded && (
+                <div className="pl-4 pr-3 pb-2.5 pt-1 space-y-1 border-t border-emerald-800/40 text-sm">
+                  <a
+                    href="#sobre"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 py-2 px-2.5 rounded-lg text-emerald-200 hover:text-white hover:bg-emerald-800/60 transition-colors"
+                  >
+                    <Users className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Sobre Nós</span>
+                  </a>
+
+                  <a
+                    href="#estrutura"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 py-2 px-2.5 rounded-lg text-emerald-200 hover:text-white hover:bg-emerald-800/60 transition-colors"
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Estrutura & Fotos</span>
+                  </a>
+
+                  <a
+                    href="#info"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 py-2 px-2.5 rounded-lg text-emerald-200 hover:text-white hover:bg-emerald-800/60 transition-colors"
+                  >
+                    <Info className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Informações Úteis</span>
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Horários */}
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                if (onOpenSchoolInfo) onOpenSchoolInfo();
+              }}
+              className="w-full flex items-center justify-between py-2.5 px-3 rounded-xl text-base font-semibold text-emerald-100 hover:text-white hover:bg-emerald-900 transition-colors text-left cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-emerald-300" />
+                <span>Horários</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-emerald-500" />
+            </button>
+
+            {/* Biblioteca */}
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                if (onOpenLibrary) onOpenLibrary();
+              }}
+              className="w-full flex items-center justify-between py-2.5 px-3 rounded-xl text-base font-semibold text-emerald-100 hover:text-white hover:bg-emerald-900 transition-colors text-left cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-emerald-300" />
-                <span>Biblioteca Digital Escolar (Catálogo & Reservas)</span>
-              </button>
+                <span>Biblioteca</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-emerald-500" />
+            </button>
 
+            {/* Contato */}
+            <a
+              href="#contato"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between py-2.5 px-3 rounded-xl text-base font-semibold text-emerald-100 hover:text-white hover:bg-emerald-900 transition-colors"
+            >
+              <span>Contato</span>
+              <ChevronRight className="w-4 h-4 text-emerald-500" />
+            </a>
+
+            {/* Área Secundária: Gestão & Denúncia */}
+            <div className="pt-3 border-t border-emerald-800/80 grid grid-cols-2 gap-2 text-xs">
               <button
                 onClick={() => {
-                  setIsOpen(false);
+                  setIsMobileMenuOpen(false);
                   if (onOpenBullyingReport) onOpenBullyingReport();
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold text-emerald-950 bg-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                className="py-2.5 px-3 rounded-xl text-emerald-200 bg-emerald-900/60 hover:bg-emerald-900 border border-emerald-800 flex items-center justify-center gap-1.5 font-medium transition-colors cursor-pointer"
               >
-                <ShieldAlert className="w-4 h-4" />
-                <span>Canal Anti-Bullying (Acolhimento à Vítima)</span>
+                <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Denúncia</span>
               </button>
 
               <button
                 onClick={() => {
-                  setIsOpen(false);
+                  setIsMobileMenuOpen(false);
                   if (onOpenAdminLogin) onOpenAdminLogin();
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold text-emerald-200 bg-emerald-950/80 hover:bg-emerald-950 border border-emerald-700/60 transition-colors cursor-pointer"
+                className="py-2.5 px-3 rounded-xl text-emerald-200 bg-emerald-900/60 hover:bg-emerald-900 border border-emerald-800 flex items-center justify-center gap-1.5 font-medium transition-colors cursor-pointer"
               >
                 <Lock className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Login da Administração</span>
+                <span>Gestão</span>
               </button>
             </div>
+
           </div>
         </div>
       )}

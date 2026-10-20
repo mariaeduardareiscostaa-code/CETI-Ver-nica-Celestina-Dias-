@@ -518,12 +518,11 @@ export default function SchoolInfoPage({
                         </td>
                       </tr>
 
-                      {/* Aulas 1 to 3 */}
-                      {[1, 2, 3].map(slotNum => {
+                      {/* Aulas 1 e 2 (Manhã) */}
+                      {[1, 2].map(slotNum => {
                         const timeMap: Record<number, string> = {
-                          1: '07:30 - 08:20',
-                          2: '08:20 - 09:10',
-                          3: '09:10 - 10:00',
+                          1: '07:30 - 08:30',
+                          2: '08:30 - 09:30',
                         };
 
                         return (
@@ -559,11 +558,11 @@ export default function SchoolInfoPage({
                         );
                       })}
 
-                      {/* Lanche Matutino Row */}
+                      {/* Lanche Matutino Row (09:30 - 09:50) */}
                       <tr className="bg-amber-50/70 border-y border-amber-200/80">
                         <td className="py-2.5 px-4 font-bold text-amber-950 flex items-center gap-1.5">
                           <Utensils className="w-3.5 h-3.5 text-amber-700" />
-                          <span>10:00 - 10:20</span>
+                          <span>09:30 - 09:50</span>
                         </td>
                         <td colSpan={selectedDayKey === 'todos' ? 5 : 1} className="py-2 px-4 text-amber-900 font-medium border-l border-amber-100">
                           <div className="flex items-center justify-between">
@@ -573,11 +572,11 @@ export default function SchoolInfoPage({
                         </td>
                       </tr>
 
-                      {/* Aulas 4 e 5 */}
-                      {[4, 5].map(slotNum => {
+                      {/* Aulas 3 e 4 (Manhã) */}
+                      {[3, 4].map(slotNum => {
                         const timeMap: Record<number, string> = {
-                          4: '10:20 - 11:10',
-                          5: '11:10 - 12:00',
+                          3: '09:50 - 10:50',
+                          4: '10:50 - 11:50',
                         };
 
                         return (
@@ -613,27 +612,27 @@ export default function SchoolInfoPage({
                         );
                       })}
 
-                      {/* Almoço Escolar & Descanso */}
+                      {/* Almoço Escolar & Descanso Orientado (11:50 - 12:50) */}
                       <tr className="bg-emerald-900 text-white font-semibold">
                         <td className="py-3 px-4 font-bold flex items-center gap-1.5 text-emerald-200">
                           <Utensils className="w-4 h-4 text-emerald-300" />
-                          <span>12:00 - 13:20</span>
+                          <span>11:50 - 12:50</span>
                         </td>
                         <td colSpan={selectedDayKey === 'todos' ? 5 : 1} className="py-3 px-4 border-l border-emerald-800">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-                            <span className="font-bold text-emerald-100">Almoço Escolar Completo & Intervalo de Descanso Orientado (1h20m)</span>
+                            <span className="font-bold text-emerald-100">Almoço Escolar Completo & Intervalo de Descanso Orientado (1h)</span>
                             <span className="text-[10px] text-emerald-300 bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-700/60 w-fit">
-                              Refeitório Climatizado · Sala de Jogos e Leitura na Biblioteca
+                              Refeitório Climatizado · Biblioteca & Convivência
                             </span>
                           </div>
                         </td>
                       </tr>
 
-                      {/* Aulas 6 e 7 */}
-                      {[6, 7].map(slotNum => {
+                      {/* Aulas 5 e 6 (Tarde) */}
+                      {[5, 6].map(slotNum => {
                         const timeMap: Record<number, string> = {
-                          6: '13:20 - 14:10',
-                          7: '14:10 - 15:00',
+                          5: '12:50 - 13:50',
+                          6: '13:50 - 14:50',
                         };
 
                         return (
@@ -669,11 +668,11 @@ export default function SchoolInfoPage({
                         );
                       })}
 
-                      {/* Lanche da Tarde */}
+                      {/* Lanche da Tarde (14:50 - 15:10) */}
                       <tr className="bg-amber-50/70 border-y border-amber-200/80">
                         <td className="py-2.5 px-4 font-bold text-amber-950 flex items-center gap-1.5">
                           <Coffee className="w-3.5 h-3.5 text-amber-700" />
-                          <span>15:00 - 15:20</span>
+                          <span>14:50 - 15:10</span>
                         </td>
                         <td colSpan={selectedDayKey === 'todos' ? 5 : 1} className="py-2 px-4 text-amber-900 font-medium border-l border-amber-100">
                           <div className="flex items-center justify-between">
@@ -683,11 +682,11 @@ export default function SchoolInfoPage({
                         </td>
                       </tr>
 
-                      {/* Aulas 8 e 9 */}
-                      {[8, 9].map(slotNum => {
+                      {/* Aulas 7 e 8 (Tarde) */}
+                      {[7, 8].map(slotNum => {
                         const timeMap: Record<number, string> = {
-                          8: '15:20 - 16:10',
-                          9: '16:10 - 17:00',
+                          7: '15:10 - 16:10',
+                          8: '16:10 - 17:10',
                         };
 
                         return (
@@ -723,11 +722,11 @@ export default function SchoolInfoPage({
                         );
                       })}
 
-                      {/* Saída 17:00 */}
+                      {/* Término 17:10 */}
                       <tr className="bg-emerald-950 text-emerald-200">
                         <td className="py-2.5 px-4 font-bold flex items-center gap-1.5">
                           <Sun className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>17:00</span>
+                          <span>17:10</span>
                         </td>
                         <td colSpan={selectedDayKey === 'todos' ? 5 : 1} className="py-2 px-4 border-l border-emerald-900 text-xs">
                           <div className="flex items-center justify-between">

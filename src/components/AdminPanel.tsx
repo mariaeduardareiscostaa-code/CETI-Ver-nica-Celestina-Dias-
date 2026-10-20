@@ -22,7 +22,10 @@ import {
   Inbox,
   KeyRound,
   BookOpen,
-  BookmarkCheck
+  BookmarkCheck,
+  Phone,
+  Users,
+  User
 } from 'lucide-react';
 import { BookReservation, Book, INITIAL_BOOKS } from '../data/libraryBooks';
 
@@ -32,16 +35,31 @@ interface AdminPanelProps {
 
 interface BullyingReport {
   id: string;
+  // Identificação da Vítima (não mais anônimo)
+  victimName: string;
+  victimGrade: string;
+  victimShift?: string;
+  victimMatricula?: string;
+  // Identificação de quem relatou
+  reporterRole?: 'vitima' | 'colega' | 'professor' | 'responsavel' | 'outro';
+  reporterName?: string;
+  reporterContact?: string;
+  // Agressores / Envolvidos
+  aggressorNames?: string;
+  aggressorGrade?: string;
+  // Ocorrência
   type: string;
   location: string;
   frequency: string;
-  targetPerson: string;
-  classGrade?: string;
+  incidentDate?: string;
   description: string;
   supportDesired: string[];
   date: string;
   status?: 'Pendente' | 'Em Acompanhamento' | 'Concluído';
   internalNotes?: string;
+  // Compatibilidade com dados anteriores
+  targetPerson?: string;
+  classGrade?: string;
 }
 
 interface ContactMessage {
@@ -90,39 +108,75 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
   }, [isAuthenticated]);
 
   const loadData = () => {
-    // 1. Bullying reports
+    // 1. Bullying reports with identified victims
     try {
       const stored = localStorage.getItem('vcd_bullying_reports');
       if (stored) {
-        setReports(JSON.parse(stored));
+        const parsed: BullyingReport[] = JSON.parse(stored);
+        // Normalize any older records that lacked explicit victimName
+        const normalized = parsed.map((item, idx) => ({
+          ...item,
+          victimName: item.victimName || (item.targetPerson === 'eu' ? 'Aluno(a) Autorrelatado' : `Aluno(a) Vítima Relatada #${idx + 1}`),
+          victimGrade: item.victimGrade || item.classGrade || 'Ensino Médio Integral',
+          victimShift: item.victimShift || 'Tempo Integral',
+          reporterRole: item.reporterRole || (item.targetPerson === 'eu' ? 'vitima' : 'colega'),
+          reporterName: item.reporterName || (item.targetPerson === 'eu' ? item.victimName : 'Denunciante da Comunidade'),
+          reporterContact: item.reporterContact || '(89) 99410-7024',
+          aggressorNames: item.aggressorNames || 'Envolvidos sob apuração'
+        }));
+        setReports(normalized);
       } else {
-        // Seed initial mock reports for immediate demonstration
+        // Seed initial mock reports with identified victims
         const sampleReports: BullyingReport[] = [
           {
-            id: 'VCD-ANON-782914',
+            id: 'VCD-DEN-782914',
+            victimName: 'Lucas Gabriel Mendonça',
+            victimGrade: '1º Ano A - Ensino Médio Integral',
+            victimShift: 'Tempo Integral',
+            victimMatricula: '2025-VCD-0891',
+            reporterRole: 'colega',
+            reporterName: 'Carlos Eduardo Silva',
+            reporterContact: '(89) 99422-3344',
+            aggressorNames: 'Alunos do 2º Ano B (Pedro H. e colegas)',
+            aggressorGrade: '2º Ano B',
             type: 'verbal',
             location: 'patio',
             frequency: 'diaria',
-            targetPerson: 'colega',
-            classGrade: '1º Ano do Ensino Médio',
-            description: 'Alguns alunos estão zombando de um colega novato durante o intervalo por conta de sua cidade de origem. O colega começou a ficar isolado no recreio.',
-            supportDesired: ['Mediação pacífica na turma sem expor quem relatou', 'Aumento de supervisão de inspetores no local indicado'],
-            date: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+            incidentDate: 'esta_semana',
+            description: 'Alguns alunos estão zombando do Lucas durante o recreio por conta do sotaque e de sua cidade natal. Ele começou a ficar isolado e chorou no banheiro ontem.',
+            supportDesired: [
+              'Conversa confidencial imediata da coordenação com a vítima',
+              'Apoio psicopedagógico e acolhimento emocional escolar',
+              'Aumento de supervisão e ronda de inspetores no local indicado'
+            ],
+            date: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
             status: 'Pendente',
-            internalNotes: 'Inspetor da área do pátio avisado para intensificar a ronda.'
+            internalNotes: 'Inspetor da área do pátio avisado para intensificar a ronda. Agendar acolhimento com Lucas e convocar os responsáveis.'
           },
           {
-            id: 'VCD-ANON-904321',
+            id: 'VCD-DEN-904321',
+            victimName: 'Mariana Rios de Albuquerque',
+            victimGrade: '2º Ano B - Ensino Médio Integral',
+            victimShift: 'Tempo Integral',
+            victimMatricula: '2024-VCD-1420',
+            reporterRole: 'vitima',
+            reporterName: 'Mariana Rios de Albuquerque',
+            reporterContact: '(89) 99455-8811',
+            aggressorNames: 'Grupo de alunas da mesma turma',
+            aggressorGrade: '2º Ano B',
             type: 'cyber',
             location: 'internet',
             frequency: 'recente',
-            targetPerson: 'eu',
-            classGrade: '2º Ano B',
-            description: 'Criaram uma figurinha ofensiva com minha foto e estão compartilhando nos grupos de turma do WhatsApp.',
-            supportDesired: ['Conversa confidencial com a coordenação pedagógica', 'Apoio e acolhimento psicológico/emocional'],
-            date: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+            incidentDate: 'ontem',
+            description: 'Criaram uma figurinha com montagem ofensiva da minha foto e compartilharam nos grupos de WhatsApp da turma, além de me excluírem das atividades.',
+            supportDesired: [
+              'Conversa confidencial imediata da coordenação com a vítima',
+              'Convocação reservada da família dos envolvidos pela direção',
+              'Mediação pacífica na turma sem expor a vítima aos agressores'
+            ],
+            date: new Date(Date.now() - 1000 * 60 * 60 * 44).toISOString(),
             status: 'Em Acompanhamento',
-            internalNotes: 'Agendada conversa de acolhimento com a equipe psicopedagógica.'
+            internalNotes: 'Coordenação acolheu a aluna Mariana em 18/10. Reunião individual com os responsáveis dos envolvidos convocada para esta semana.'
           }
         ];
         localStorage.setItem('vcd_bullying_reports', JSON.stringify(sampleReports));
@@ -286,10 +340,16 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
   };
 
   const filteredReports = reports.filter(r => {
+    const term = searchTerm.toLowerCase();
     const matchesSearch = 
-      r.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (r.classGrade && r.classGrade.toLowerCase().includes(searchTerm.toLowerCase()));
+      r.id.toLowerCase().includes(term) ||
+      (r.victimName && r.victimName.toLowerCase().includes(term)) ||
+      (r.victimGrade && r.victimGrade.toLowerCase().includes(term)) ||
+      (r.victimMatricula && r.victimMatricula.toLowerCase().includes(term)) ||
+      (r.reporterName && r.reporterName.toLowerCase().includes(term)) ||
+      (r.aggressorNames && r.aggressorNames.toLowerCase().includes(term)) ||
+      r.description.toLowerCase().includes(term) ||
+      (r.classGrade && r.classGrade.toLowerCase().includes(term));
     
     const matchesStatus = statusFilter === 'todos' || (r.status || 'Pendente') === statusFilter;
     return matchesSearch && matchesStatus;
@@ -565,7 +625,7 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
                 <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
-                  placeholder="Buscar por protocolo, palavra ou turma..."
+                  placeholder="Buscar por vítima, protocolo, turma ou agressores..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 bg-stone-50/50"
@@ -593,7 +653,7 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
               <div className="text-center py-12 text-stone-500 space-y-2">
                 <ShieldAlert className="w-10 h-10 text-stone-300 mx-auto" />
                 <p className="font-semibold text-stone-700">Nenhum relato encontrado com os filtros aplicados.</p>
-                <p className="text-xs">Quando novos relatos forem enviados pelo canal anônimo, eles aparecerão aqui instantaneamente.</p>
+                <p className="text-xs">Quando novos relatos forem enviados pelo canal com a vítima identificada, eles aparecerão aqui instantaneamente.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -601,8 +661,9 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
                   <thead className="bg-stone-50 text-stone-600 text-xs uppercase font-semibold border-y border-stone-200">
                     <tr>
                       <th className="py-3 px-4">Protocolo</th>
+                      <th className="py-3 px-4">Vítima Identificada</th>
+                      <th className="py-3 px-4">Quem Relatou</th>
                       <th className="py-3 px-4">Tipo / Local</th>
-                      <th className="py-3 px-4">Turma</th>
                       <th className="py-3 px-4">Data</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4 text-right">Ação</th>
@@ -611,15 +672,38 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
                   <tbody className="divide-y divide-stone-100">
                     {filteredReports.map((r) => (
                       <tr key={r.id} className="hover:bg-stone-50/80 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-bold text-emerald-950">
+                        <td className="py-3.5 px-4 font-mono font-bold text-emerald-950 text-xs">
                           {r.id}
                         </td>
                         <td className="py-3.5 px-4">
-                          <span className="font-semibold text-stone-900 block">{getBullyingTypeLabel(r.type)}</span>
-                          <span className="text-xs text-stone-500">{getLocationLabel(r.location)}</span>
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0">
+                              {(r.victimName || 'V').charAt(0)}
+                            </div>
+                            <div>
+                              <span className="font-bold text-stone-900 block leading-tight">
+                                {r.victimName || 'Vítima não especificada'}
+                              </span>
+                              <span className="text-xs text-stone-500">
+                                {r.victimGrade || r.classGrade || 'Turma não informada'}
+                                {r.victimMatricula ? ` · Mat: ${r.victimMatricula}` : ''}
+                              </span>
+                            </div>
+                          </div>
                         </td>
-                        <td className="py-3.5 px-4 text-stone-600">
-                          {r.classGrade || 'Não informada'}
+                        <td className="py-3.5 px-4">
+                          <span className="font-semibold text-stone-800 block text-xs">
+                            {r.reporterRole === 'vitima' ? 'A própria vítima' : r.reporterName || 'Comunidade Escolar'}
+                          </span>
+                          {r.reporterContact && (
+                            <span className="text-xs text-emerald-700 block font-mono">
+                              {r.reporterContact}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-semibold text-stone-900 block text-xs">{getBullyingTypeLabel(r.type)}</span>
+                          <span className="text-xs text-stone-500">{getLocationLabel(r.location)}</span>
                         </td>
                         <td className="py-3.5 px-4 text-xs text-stone-500 whitespace-nowrap">
                           {new Date(r.date).toLocaleDateString('pt-BR')}
@@ -638,10 +722,10 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
                         <td className="py-3.5 px-4 text-right">
                           <button
                             onClick={() => openReportModal(r)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-semibold text-xs transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-bold text-xs transition-colors cursor-pointer shadow-xs"
                           >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Analisar</span>
+                            <Eye className="w-3.5 h-3.5 text-emerald-800" />
+                            <span>Acolher</span>
                           </button>
                         </td>
                       </tr>
@@ -944,8 +1028,87 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
               </button>
             </div>
 
+            {/* Card 1: Vítima Identificada */}
+            <div className="bg-emerald-50/80 border border-emerald-300 rounded-2xl p-4.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-emerald-950 font-bold text-sm sm:text-base">
+                  <UserCheck className="w-5 h-5 text-emerald-700 shrink-0" />
+                  <span>Vítima Identificada para Acolhimento</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-bold text-xs">
+                  Vítima Identificada
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-white p-3.5 rounded-xl border border-emerald-100">
+                <div>
+                  <span className="text-stone-500 block font-semibold uppercase text-[10px]">Nome Completo da Vítima:</span>
+                  <span className="font-extrabold text-emerald-950 text-sm block mt-0.5">
+                    {selectedReport.victimName || 'Não informado'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block font-semibold uppercase text-[10px]">Turma / Ano Escolar:</span>
+                  <span className="font-bold text-stone-900 block mt-0.5">
+                    {selectedReport.victimGrade || selectedReport.classGrade || 'Não informada'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block font-semibold uppercase text-[10px]">Turno & Matrícula:</span>
+                  <span className="font-medium text-stone-800 block mt-0.5">
+                    {selectedReport.victimShift || 'Tempo Integral'}
+                    {selectedReport.victimMatricula ? ` · Mat: ${selectedReport.victimMatricula}` : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Quem Relatou & Agressores Indicados */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-stone-700 font-bold uppercase text-[11px]">
+                  <User className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Quem Registrou a Denúncia:</span>
+                </div>
+                <p className="font-bold text-stone-900 text-sm">
+                  {selectedReport.reporterName || 'Autorrelato'}
+                  <span className="text-xs font-normal text-stone-500 ml-1.5">
+                    ({selectedReport.reporterRole === 'vitima' ? 'A própria vítima' : selectedReport.reporterRole || 'Relatante'})
+                  </span>
+                </p>
+                {selectedReport.reporterContact && (
+                  <div className="pt-1 flex items-center gap-2">
+                    <span className="text-stone-500">Contato:</span>
+                    <a
+                      href={`tel:${selectedReport.reporterContact.replace(/\D/g, '')}`}
+                      className="inline-flex items-center gap-1 text-emerald-800 hover:text-emerald-950 font-bold underline font-mono text-xs"
+                      title="Ligar ou enviar mensagem"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>{selectedReport.reporterContact}</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-amber-900 font-bold uppercase text-[11px]">
+                  <Users className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Agressores / Autores Indicados:</span>
+                </div>
+                <p className="font-bold text-stone-900 text-sm">
+                  {selectedReport.aggressorNames || 'Não especificados nominalmente'}
+                </p>
+                {selectedReport.aggressorGrade && (
+                  <p className="text-stone-600 text-xs">
+                    Turma informada dos agressores: <strong className="text-stone-800">{selectedReport.aggressorGrade}</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Details Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div className="p-3 bg-stone-50 rounded-xl">
                 <span className="text-stone-500 block">Tipo:</span>
                 <span className="font-bold text-stone-800">{getBullyingTypeLabel(selectedReport.type)}</span>
@@ -959,15 +1122,7 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
                 <span className="font-bold text-stone-800 capitalize">{selectedReport.frequency}</span>
               </div>
               <div className="p-3 bg-stone-50 rounded-xl">
-                <span className="text-stone-500 block">Alvo indicado:</span>
-                <span className="font-bold text-stone-800 capitalize">{selectedReport.targetPerson}</span>
-              </div>
-              <div className="p-3 bg-stone-50 rounded-xl">
-                <span className="text-stone-500 block">Turma:</span>
-                <span className="font-bold text-stone-800">{selectedReport.classGrade || 'Não informada'}</span>
-              </div>
-              <div className="p-3 bg-stone-50 rounded-xl">
-                <span className="text-stone-500 block">Data de Envio:</span>
+                <span className="text-stone-500 block">Data de Registro:</span>
                 <span className="font-bold text-stone-800">{new Date(selectedReport.date).toLocaleDateString('pt-BR')}</span>
               </div>
             </div>
@@ -975,7 +1130,7 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
             {/* Full Report Narrative */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider block">
-                Relato do Aluno (Anônimo):
+                Relato Detalhado dos Fatos:
               </label>
               <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 text-sm text-stone-800 leading-relaxed whitespace-pre-wrap">
                 {selectedReport.description}
@@ -986,7 +1141,7 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
             {selectedReport.supportDesired && selectedReport.supportDesired.length > 0 && (
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider block">
-                  Apoio Solicitado pelo Aluno:
+                  Apoio Solicitado para a Vítima:
                 </label>
                 <div className="space-y-1">
                   {selectedReport.supportDesired.map((sup, idx) => (

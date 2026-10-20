@@ -69,10 +69,10 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
             <button
               onClick={onOpenBullyingReport}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-950 bg-emerald-200 hover:bg-emerald-100 rounded-lg transition-colors whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
-              title="Acessar Canal Seguro para Denúncia Anônima de Bullying"
+              title="Acessar Canal de Denúncia e Acolhimento à Vítima de Bullying"
             >
               <ShieldAlert className="w-3.5 h-3.5 text-emerald-900" />
-              <span>Denúncia</span>
+              <span>Denúncia Bullying</span>
             </button>
 
             <button
@@ -144,7 +144,7 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
                 className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 transition-colors cursor-pointer"
               >
                 <ShieldAlert className="w-4 h-4" />
-                <span>Canal Anônimo de Combate ao Bullying</span>
+                <span>Canal Anti-Bullying (Acolhimento à Vítima)</span>
               </button>
 
               <button

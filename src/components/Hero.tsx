@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldAlert, MapPin, Sparkles, Users, ArrowDown, Image as ImageIcon, Award, BookOpen } from 'lucide-react';
+import { ShieldAlert, MapPin, Sparkles, Users, ArrowDown, Image as ImageIcon, Award, BookOpen, CalendarDays } from 'lucide-react';
 import fachadaImg from '../assets/images/cetifrente2.jpeg';
 import patioImg from '../assets/images/cetipatio.jpeg';
 import escadaImg from '../assets/images/cetiescada (1).jpeg';
@@ -7,9 +7,10 @@ import escadaImg from '../assets/images/cetiescada (1).jpeg';
 interface HeroProps {
   onOpenBullyingReport?: () => void;
   onOpenLibrary?: () => void;
+  onOpenSchoolInfo?: () => void;
 }
 
-export default function Hero({ onOpenBullyingReport, onOpenLibrary }: HeroProps) {
+export default function Hero({ onOpenBullyingReport, onOpenLibrary, onOpenSchoolInfo }: HeroProps) {
   const [activePhoto, setActivePhoto] = useState<'fachada' | 'escada' | 'patio'>('fachada');
 
   return (
@@ -48,12 +49,21 @@ export default function Hero({ onOpenBullyingReport, onOpenLibrary }: HeroProps)
             {/* Action Buttons */}
             <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3.5">
               <button
+                onClick={onOpenSchoolInfo}
+                className="inline-flex items-center justify-center gap-2 bg-emerald-300 hover:bg-emerald-200 text-emerald-950 font-bold px-5 py-3 rounded-xl transition-all shadow-md text-sm sm:text-base active:scale-95 cursor-pointer ring-2 ring-emerald-300/40"
+                title="Consultar grade de horários, rotina integral e informações da escola"
+              >
+                <CalendarDays className="w-5 h-5 text-emerald-950" />
+                <span>Grade de Horários & Info</span>
+              </button>
+
+              <button
                 onClick={onOpenLibrary}
-                className="inline-flex items-center justify-center gap-2 bg-emerald-300 hover:bg-emerald-200 text-emerald-950 font-bold px-5 py-3 rounded-xl transition-all shadow-md text-sm sm:text-base active:scale-95 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 bg-emerald-800/90 hover:bg-emerald-800 text-white border border-emerald-400/50 font-bold px-5 py-3 rounded-xl transition-all shadow-md text-sm sm:text-base active:scale-95 cursor-pointer"
                 title="Acessar o acervo de livros e reservar exemplar online"
               >
-                <BookOpen className="w-5 h-5 text-emerald-950" />
-                <span>Biblioteca Digital Escolar</span>
+                <BookOpen className="w-5 h-5 text-emerald-300" />
+                <span>Biblioteca Digital</span>
               </button>
 
               <a
@@ -66,10 +76,10 @@ export default function Hero({ onOpenBullyingReport, onOpenLibrary }: HeroProps)
 
               <button
                 onClick={onOpenBullyingReport}
-                className="inline-flex items-center justify-center gap-2 bg-emerald-800/80 hover:bg-emerald-800 text-white border border-emerald-400/50 font-semibold px-5 py-3 rounded-xl transition-all shadow-sm text-sm sm:text-base active:scale-95 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 bg-emerald-900/90 hover:bg-emerald-800 text-white border border-emerald-500/40 font-semibold px-4 py-3 rounded-xl transition-all shadow-sm text-sm sm:text-base active:scale-95 cursor-pointer"
               >
                 <ShieldAlert className="w-5 h-5 text-emerald-300" />
-                <span>Canal Anti-Bullying</span>
+                <span>Canal Bullying</span>
               </button>
             </div>
           </div>

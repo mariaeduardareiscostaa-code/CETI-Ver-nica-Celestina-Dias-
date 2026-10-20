@@ -1,17 +1,19 @@
 import React from 'react';
-import { Menu, X, ShieldAlert, Lock, BookOpen } from 'lucide-react';
+import { Menu, X, ShieldAlert, Lock, BookOpen, CalendarDays } from 'lucide-react';
 
 interface NavbarProps {
   onOpenBullyingReport?: () => void;
   onOpenAdminLogin?: () => void;
   onOpenLibrary?: () => void;
+  onOpenSchoolInfo?: () => void;
 }
 
-export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenLibrary }: NavbarProps) {
+export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenLibrary, onOpenSchoolInfo }: NavbarProps) {
   const [isOpen, setIsOpen] = React.useState(false);
 
   const links = [
     { name: 'Início', href: '#inicio' },
+    { name: 'Grade de Horários', href: '#horarios-escola' },
     { name: 'Sobre Nós', href: '#sobre' },
     { name: 'Estrutura & Fotos', href: '#estrutura' },
     { name: 'Biblioteca Digital', href: '#biblioteca' },
@@ -33,8 +35,20 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
             <span className="font-bold text-xl tracking-tight sm:hidden">CETI VCD</span>
           </div>
           
-          <div className="hidden lg:flex items-center space-x-3">
+          <div className="hidden lg:flex items-center space-x-2">
             {links.map((link) => {
+              if (link.name === 'Grade de Horários' && onOpenSchoolInfo) {
+                return (
+                  <button
+                    key={link.name}
+                    onClick={onOpenSchoolInfo}
+                    className="hover:bg-emerald-800 hover:text-emerald-200 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <CalendarDays className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>{link.name}</span>
+                  </button>
+                );
+              }
               if (link.name === 'Biblioteca Digital' && onOpenLibrary) {
                 return (
                   <button
@@ -59,20 +73,29 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
             })}
           </div>
 
-          {/* Action Buttons: Biblioteca Shortcut + Bullying Report + Admin Login */}
+          {/* Action Buttons: Grade Shortcut + Biblioteca Shortcut + Bullying Report + Admin Login */}
           <div className="hidden sm:flex items-center gap-2 shrink-0">
             <button
+              onClick={onOpenSchoolInfo}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 rounded-lg transition-all whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
+              title="Acessar Grade de Horários e Informações da Escola"
+            >
+              <CalendarDays className="w-3.5 h-3.5 text-emerald-950" />
+              <span>Horários & Escola</span>
+            </button>
+
+            <button
               onClick={onOpenLibrary}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-lg transition-all whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:text-white bg-emerald-800 hover:bg-emerald-700 border border-emerald-600/60 rounded-lg transition-all whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
               title="Acessar Catálogo e Reservar Livros na Biblioteca Digital Escolar"
             >
-              <BookOpen className="w-3.5 h-3.5 text-emerald-950" />
-              <span>Biblioteca Digital</span>
+              <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Biblioteca</span>
             </button>
 
             <button
               onClick={onOpenBullyingReport}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-950 bg-emerald-200 hover:bg-emerald-100 rounded-lg transition-colors whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-950 bg-emerald-200 hover:bg-emerald-100 rounded-lg transition-colors whitespace-nowrap shadow-sm hover:shadow active:scale-95 cursor-pointer"
               title="Acessar Canal de Denúncia e Acolhimento à Vítima de Bullying"
             >
               <ShieldAlert className="w-3.5 h-3.5 text-emerald-900" />
@@ -91,11 +114,20 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
           
           <div className="flex sm:hidden items-center gap-1.5">
             <button
+              onClick={onOpenSchoolInfo}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 rounded-md active:scale-95 cursor-pointer"
+              title="Grade de Horários"
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span>Horários</span>
+            </button>
+
+            <button
               onClick={onOpenLibrary}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-md active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-emerald-100 bg-emerald-800 hover:bg-emerald-700 rounded-md active:scale-95 cursor-pointer"
+              title="Biblioteca"
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>Biblioteca</span>
             </button>
 
             <button
@@ -118,7 +150,10 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
                 href={link.href}
                 onClick={(e) => {
                   setIsOpen(false);
-                  if (link.name === 'Biblioteca Digital' && onOpenLibrary) {
+                  if (link.name === 'Grade de Horários' && onOpenSchoolInfo) {
+                    e.preventDefault();
+                    onOpenSchoolInfo();
+                  } else if (link.name === 'Biblioteca Digital' && onOpenLibrary) {
                     e.preventDefault();
                     onOpenLibrary();
                   }
@@ -132,11 +167,22 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
               <button
                 onClick={() => {
                   setIsOpen(false);
+                  if (onOpenSchoolInfo) onOpenSchoolInfo();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 transition-colors cursor-pointer shadow-sm"
+              >
+                <CalendarDays className="w-4 h-4" />
+                <span>Grade de Horários & Informações da Escola</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsOpen(false);
                   if (onOpenLibrary) onOpenLibrary();
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 transition-colors cursor-pointer shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold text-white bg-emerald-900 hover:bg-emerald-850 border border-emerald-600/50 transition-colors cursor-pointer shadow-sm"
               >
-                <BookOpen className="w-4 h-4" />
+                <BookOpen className="w-4 h-4 text-emerald-300" />
                 <span>Biblioteca Digital Escolar (Catálogo & Reservas)</span>
               </button>
 
@@ -145,7 +191,7 @@ export default function Navbar({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
                   setIsOpen(false);
                   if (onOpenBullyingReport) onOpenBullyingReport();
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold text-emerald-950 bg-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
               >
                 <ShieldAlert className="w-4 h-4" />
                 <span>Canal Anti-Bullying (Acolhimento à Vítima)</span>

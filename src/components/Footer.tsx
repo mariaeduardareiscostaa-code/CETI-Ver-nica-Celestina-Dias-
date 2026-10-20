@@ -4,9 +4,10 @@ interface FooterProps {
   onOpenBullyingReport?: () => void;
   onOpenAdminLogin?: () => void;
   onOpenLibrary?: () => void;
+  onOpenSchoolInfo?: () => void;
 }
 
-export default function Footer({ onOpenBullyingReport, onOpenAdminLogin, onOpenLibrary }: FooterProps) {
+export default function Footer({ onOpenBullyingReport, onOpenAdminLogin, onOpenLibrary, onOpenSchoolInfo }: FooterProps) {
   return (
     <footer className="bg-emerald-950 text-emerald-200/90 py-12 border-t border-emerald-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -24,10 +25,18 @@ export default function Footer({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
               R. Marino Caetano, Campo Alegre do Fidalgo - PI, 64767-000 · <a href="tel:+558994107024" className="hover:text-white underline underline-offset-2">+55 89 9410-7024</a>
             </p>
             <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 text-xs mt-1 text-emerald-300">
-              {onOpenLibrary && (
-                <button onClick={onOpenLibrary} className="hover:text-white underline underline-offset-2 cursor-pointer text-emerald-300 font-semibold">
-                  Biblioteca Digital Escolar
+              {onOpenSchoolInfo && (
+                <button onClick={onOpenSchoolInfo} className="hover:text-white underline underline-offset-2 cursor-pointer text-emerald-300 font-semibold">
+                  Grade de Horários & Informações
                 </button>
+              )}
+              {onOpenLibrary && (
+                <>
+                  <span>·</span>
+                  <button onClick={onOpenLibrary} className="hover:text-white underline underline-offset-2 cursor-pointer text-emerald-300">
+                    Biblioteca Digital
+                  </button>
+                </>
               )}
               {onOpenBullyingReport && (
                 <>

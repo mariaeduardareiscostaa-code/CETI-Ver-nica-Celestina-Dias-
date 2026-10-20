@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
+import SchoolInfoBanner from './components/SchoolInfoBanner';
 import BullyingBanner from './components/BullyingBanner';
 import LibraryBanner from './components/LibraryBanner';
 import SchoolGallery from './components/SchoolGallery';
@@ -15,13 +16,15 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import BullyingReportPage from './components/BullyingReportPage';
 import DigitalLibraryPage from './components/DigitalLibraryPage';
+import SchoolInfoPage from './components/SchoolInfoPage';
 import AdminPanel from './components/AdminPanel';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'bullying' | 'admin' | 'biblioteca'>(() => {
+  const [currentView, setCurrentView] = useState<'home' | 'bullying' | 'admin' | 'biblioteca' | 'escola'>(() => {
     if (window.location.hash === '#denuncia-bullying') return 'bullying';
     if (window.location.hash === '#admin') return 'admin';
     if (window.location.hash === '#biblioteca') return 'biblioteca';
+    if (window.location.hash === '#horarios-escola' || window.location.hash === '#escola') return 'escola';
     return 'home';
   });
 
@@ -35,6 +38,9 @@ export default function App() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (window.location.hash === '#biblioteca') {
         setCurrentView('biblioteca');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (window.location.hash === '#horarios-escola' || window.location.hash === '#escola') {
+        setCurrentView('escola');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setCurrentView('home');
@@ -54,6 +60,12 @@ export default function App() {
   const openLibrary = () => {
     window.location.hash = '#biblioteca';
     setCurrentView('biblioteca');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const openSchoolInfo = () => {
+    window.location.hash = '#horarios-escola';
+    setCurrentView('escola');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -77,6 +89,17 @@ export default function App() {
     return <DigitalLibraryPage onBackToHome={backToHome} onOpenAdminLogin={openAdminLogin} />;
   }
 
+  if (currentView === 'escola') {
+    return (
+      <SchoolInfoPage 
+        onBackToHome={backToHome}
+        onOpenLibrary={openLibrary}
+        onOpenBullyingReport={openBullyingReport}
+        onOpenAdminLogin={openAdminLogin}
+      />
+    );
+  }
+
   if (currentView === 'admin') {
     return <AdminPanel onBackToHome={backToHome} />;
   }
@@ -87,12 +110,15 @@ export default function App() {
         onOpenBullyingReport={openBullyingReport} 
         onOpenAdminLogin={openAdminLogin}
         onOpenLibrary={openLibrary}
+        onOpenSchoolInfo={openSchoolInfo}
       />
       <main className="flex-grow">
         <Hero 
           onOpenBullyingReport={openBullyingReport}
           onOpenLibrary={openLibrary}
+          onOpenSchoolInfo={openSchoolInfo}
         />
+        <SchoolInfoBanner onOpenSchoolInfo={openSchoolInfo} />
         <BullyingBanner onOpenBullyingReport={openBullyingReport} />
         <LibraryBanner onOpenLibrary={openLibrary} />
         <SchoolGallery />
@@ -104,6 +130,7 @@ export default function App() {
         onOpenBullyingReport={openBullyingReport} 
         onOpenAdminLogin={openAdminLogin}
         onOpenLibrary={openLibrary}
+        onOpenSchoolInfo={openSchoolInfo}
       />
     </div>
   );

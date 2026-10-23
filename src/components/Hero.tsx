@@ -66,13 +66,6 @@ export default function Hero({ onOpenBullyingReport, onOpenLibrary, onOpenSchool
                 <span>Biblioteca Digital</span>
               </button>
 
-              <a
-                href="#estrutura"
-                className="inline-flex items-center justify-center gap-2 bg-emerald-950/80 hover:bg-emerald-900 text-white border border-emerald-500/50 font-semibold px-5 py-3 rounded-xl transition-all shadow-md text-sm sm:text-base active:scale-95"
-              >
-                <span>Ver Fotos Reais</span>
-                <ArrowDown className="w-4 h-4" />
-              </a>
 
               <button
                 onClick={onOpenBullyingReport}

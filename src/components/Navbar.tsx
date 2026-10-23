@@ -60,19 +60,19 @@ export default function Navbar({
           <a 
             href="#inicio" 
             onClick={handleHomeClick}
-            className="flex items-center gap-2.5 shrink-0 group cursor-pointer"
+            className="flex items-center gap-2 sm:gap-2.5 shrink-0 group cursor-pointer max-w-[75%] sm:max-w-none"
             title="Ir para o início"
           >
             <img 
               src="/assets/aistudio/branco_transparente_0a853876.png" 
               alt="Logo CETI Verônica Celestina Dias" 
-              className="h-9 w-9 sm:h-10 sm:w-10 object-contain shrink-0 drop-shadow-sm brightness-110 group-hover:scale-105 transition-transform" 
+              className="h-8 w-8 sm:h-10 sm:w-10 object-contain shrink-0 drop-shadow-sm brightness-110 group-hover:scale-105 transition-transform" 
             />
-            <div className="leading-tight">
-              <span className="font-bold text-lg sm:text-xl tracking-tight text-white block">
+            <div className="leading-tight min-w-0">
+              <span className="font-bold text-sm sm:text-lg lg:text-xl tracking-tight text-white block truncate">
                 CETI Verônica Celestina Dias
               </span>
-              <span className="text-[10px] text-emerald-300 font-medium hidden sm:block">
+              <span className="text-[10px] text-emerald-300 font-medium hidden sm:block truncate">
                 Ensino Médio em Tempo Integral · SEDUC Piauí
               </span>
             </div>

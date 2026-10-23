@@ -879,7 +879,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
               </div>
 
               {/* Category Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs">
                 <span className="text-emerald-400/80 font-semibold uppercase text-[10px] tracking-wider pl-1 mr-1 flex items-center gap-1">
                   <Filter className="w-3 h-3" /> Categorias:
                 </span>

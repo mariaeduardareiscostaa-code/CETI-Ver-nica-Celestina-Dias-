@@ -643,7 +643,7 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex border-b border-stone-200 bg-white px-4 pt-2 rounded-t-2xl shadow-xs overflow-x-auto">
+        <div className="flex border-b border-stone-200 bg-white px-4 pt-2 rounded-t-2xl shadow-xs overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('bullying')}
             className={`pb-3 px-4 font-semibold text-sm border-b-2 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer ${

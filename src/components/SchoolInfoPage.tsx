@@ -421,7 +421,7 @@ export default function SchoolInfoPage({
                     <option value="diversificada">Itinerários / Integral</option>
                   </select>
 
-                  <div className="border-l border-stone-200 pl-2 hidden sm:flex items-center gap-1">
+                  <div className="border-l border-stone-200 pl-2 flex items-center gap-1">
                     <button
                       onClick={() => setScheduleViewMode('grade')}
                       className={`p-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
@@ -473,8 +473,13 @@ export default function SchoolInfoPage({
 
             {/* Timetable Matrix (Table View) */}
             {scheduleViewMode === 'grade' && (
-              <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+              <div className="space-y-2">
+                <div className="md:hidden flex items-center justify-between px-3 py-1.5 bg-emerald-50 text-emerald-800 rounded-xl text-[11px] font-medium border border-emerald-200">
+                  <span>Deslize horizontalmente para ver todos os horários</span>
+                  <span className="font-bold">↔ Seg a Sex</span>
+                </div>
+                <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                       <tr className="bg-emerald-950 text-white text-xs uppercase tracking-wider font-bold">
@@ -729,7 +734,8 @@ export default function SchoolInfoPage({
                   </table>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
             {/* Daily Cards View */}
             {scheduleViewMode === 'cards' && (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldAlert, MapPin, Sparkles, Users, ArrowDown, Image as ImageIcon, Award, BookOpen, CalendarDays } from 'lucide-react';
+import { ShieldAlert, MapPin, Users, ArrowDown, Image as ImageIcon, Award, BookOpen, CalendarDays } from 'lucide-react';
 import fachadaImg from '../assets/images/cetifrente2.jpeg';
 import patioImg from '../assets/images/cetipatio.jpeg';
 import escadaImg from '../assets/images/cetiescada (1).jpeg';
@@ -21,7 +21,11 @@ export default function Hero({ onOpenBullyingReport, onOpenLibrary, onOpenSchool
           {/* Left Column: Headlines & Actions */}
           <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-800/80 border border-emerald-600/60 text-emerald-200 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+              <img 
+                src="/assets/aistudio/Bras_o_do_Piau__em_Branco_00ffc3d3.png" 
+                alt="Brasão do Estado do Piauí" 
+                className="w-4 h-4 object-contain brightness-110 shrink-0" 
+              />
               <span>Governo do Estado do Piauí · SEDUC</span>
             </div>
 
@@ -47,76 +51,75 @@ export default function Hero({ onOpenBullyingReport, onOpenLibrary, onOpenSchool
             </div>
 
             {/* Action Buttons */}
-            <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3.5">
+            <div className="pt-2 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center lg:justify-start gap-3">
               <button
                 onClick={onOpenSchoolInfo}
-                className="inline-flex items-center justify-center gap-2 bg-emerald-300 hover:bg-emerald-200 text-emerald-950 font-bold px-5 py-3 rounded-xl transition-all shadow-md text-sm sm:text-base active:scale-95 cursor-pointer ring-2 ring-emerald-300/40"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-300 hover:bg-emerald-200 text-emerald-950 font-bold px-5 py-3 rounded-xl transition-all shadow-md text-sm sm:text-base active:scale-95 cursor-pointer ring-2 ring-emerald-300/40"
                 title="Consultar grade de horários, rotina integral e informações da escola"
               >
-                <CalendarDays className="w-5 h-5 text-emerald-950" />
+                <CalendarDays className="w-5 h-5 text-emerald-950 shrink-0" />
                 <span>Grade de Horários & Info</span>
               </button>
 
               <button
                 onClick={onOpenLibrary}
-                className="inline-flex items-center justify-center gap-2 bg-emerald-800/90 hover:bg-emerald-800 text-white border border-emerald-400/50 font-bold px-5 py-3 rounded-xl transition-all shadow-md text-sm sm:text-base active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-800/90 hover:bg-emerald-800 text-white border border-emerald-400/50 font-bold px-5 py-3 rounded-xl transition-all shadow-md text-sm sm:text-base active:scale-95 cursor-pointer"
                 title="Acessar o acervo de livros e reservar exemplar online"
               >
-                <BookOpen className="w-5 h-5 text-emerald-300" />
+                <BookOpen className="w-5 h-5 text-emerald-300 shrink-0" />
                 <span>Biblioteca Digital</span>
               </button>
 
-
               <button
                 onClick={onOpenBullyingReport}
-                className="inline-flex items-center justify-center gap-2 bg-emerald-900/90 hover:bg-emerald-800 text-white border border-emerald-500/40 font-semibold px-4 py-3 rounded-xl transition-all shadow-sm text-sm sm:text-base active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-900/90 hover:bg-emerald-800 text-white border border-emerald-500/40 font-semibold px-4 py-3 rounded-xl transition-all shadow-sm text-sm sm:text-base active:scale-95 cursor-pointer"
               >
-                <ShieldAlert className="w-5 h-5 text-emerald-300" />
+                <ShieldAlert className="w-5 h-5 text-emerald-300 shrink-0" />
                 <span>Canal Bullying</span>
               </button>
             </div>
           </div>
 
           {/* Right Column: 100% Real, Uncropped, Unaltered Photos */}
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-6 w-full">
             <div className="bg-white/10 backdrop-blur-xs p-3 sm:p-4 rounded-3xl border border-emerald-500/30 shadow-2xl">
               
               {/* Photo Selector Tabs */}
-              <div className="flex items-center justify-between gap-1.5 mb-3 bg-emerald-950/80 p-1.5 rounded-2xl border border-emerald-800/60">
+              <div className="flex items-center justify-between gap-1 sm:gap-1.5 mb-3 bg-emerald-950/80 p-1.5 rounded-2xl border border-emerald-800/60 overflow-x-auto no-scrollbar">
                 <button
                   onClick={() => setActivePhoto('fachada')}
-                  className={`flex-1 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 min-w-[90px] py-2 px-2 sm:px-2.5 rounded-xl text-[11px] sm:text-xs md:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 ${
                     activePhoto === 'fachada'
                       ? 'bg-emerald-400 text-emerald-950 shadow-sm'
                       : 'text-emerald-200 hover:text-white hover:bg-emerald-900/50'
                   }`}
                 >
                   <MapPin className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Fachada & Entrada</span>
+                  <span className="truncate">Fachada</span>
                 </button>
 
                 <button
                   onClick={() => setActivePhoto('escada')}
-                  className={`flex-1 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 min-w-[90px] py-2 px-2 sm:px-2.5 rounded-xl text-[11px] sm:text-xs md:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 ${
                     activePhoto === 'escada'
                       ? 'bg-emerald-400 text-emerald-950 shadow-sm'
                       : 'text-emerald-200 hover:text-white hover:bg-emerald-900/50'
                   }`}
                 >
                   <Award className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Escada de Valores</span>
+                  <span className="truncate">Escadaria</span>
                 </button>
 
                 <button
                   onClick={() => setActivePhoto('patio')}
-                  className={`flex-1 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 min-w-[90px] py-2 px-2 sm:px-2.5 rounded-xl text-[11px] sm:text-xs md:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 ${
                     activePhoto === 'patio'
                       ? 'bg-emerald-400 text-emerald-950 shadow-sm'
                       : 'text-emerald-200 hover:text-white hover:bg-emerald-900/50'
                   }`}
                 >
                   <Users className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Pátio dos Alunos</span>
+                  <span className="truncate">Pátio</span>
                 </button>
               </div>
 

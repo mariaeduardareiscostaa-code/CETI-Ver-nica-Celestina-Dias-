@@ -312,8 +312,8 @@ export default function BullyingReportPage({ onBackToHome }: BullyingReportPageP
           </div>
         ) : (
           /* Form for Identifying Victim and Reporting */
-          <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 sm:p-10 shadow-sm border border-stone-200 space-y-8">
-            <div className="border-b border-stone-200 pb-5">
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 shadow-sm border border-stone-200 space-y-6 sm:space-y-8">
+            <div className="border-b border-stone-200 pb-4 sm:pb-5">
               <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs uppercase tracking-wider mb-1">
                 <FileCheck className="w-4 h-4" />
                 <span>Formulário de Identificação da Vítima & Relato Escolar</span>

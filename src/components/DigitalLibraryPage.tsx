@@ -1557,26 +1557,16 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                     required
                     value={adminPasswordInput}
                     onChange={(e) => setAdminPasswordInput(e.target.value)}
-                    placeholder="Digite a chave da gestão (Dica: 12345)"
+                    placeholder="Digite a chave da gestão"
                     className="w-full bg-emerald-900/80 text-white pl-9 pr-3 py-2.5 rounded-xl border border-emerald-700/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 text-sm"
                   />
                 </div>
-                <p className="text-[11px] text-emerald-400/70 mt-1">
-                  Dica para teste: Utilize a senha institucional <code className="bg-emerald-900 px-1.5 py-0.5 rounded text-amber-300 font-mono">12345</code>
-                </p>
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setAdminPasswordInput('12345')}
-                  className="w-1/2 py-2.5 rounded-xl bg-emerald-900/70 hover:bg-emerald-900 text-emerald-200 text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  Preencher 12345
-                </button>
+              <div className="pt-1">
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95"
+                  className="w-full py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center gap-1.5"
                 >
                   Entrar no Modo Gestão
                 </button>

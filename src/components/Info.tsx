@@ -25,7 +25,7 @@ export default function Info() {
               <Clock className="w-6 h-6 text-emerald-700 mt-1 flex-shrink-0" />
               <div>
                 <p className="font-semibold text-gray-900 text-lg">Segunda a Sexta-feira</p>
-                <p className="text-gray-600 mt-1">Ensino em Tempo Integral: 07:00 às 17:00</p>
+                <p className="text-gray-600 mt-1">Ensino em Tempo Integral: 07:30 às 17:10</p>
                 <p className="text-gray-600">Atendimento da Secretaria: 08:00 às 16:00</p>
                 <p className="text-emerald-800 text-sm font-medium mt-1">
                   Atendimento Telefônico: <a href="tel:+558994107024" className="underline hover:text-emerald-950 font-semibold">+55 89 9410-7024</a>

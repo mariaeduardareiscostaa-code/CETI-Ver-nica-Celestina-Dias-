@@ -36,7 +36,6 @@ import {
   SCHOOL_CLASSES, 
   DAILY_ROUTINE, 
   SCHOOL_STAFF, 
-  SCHOOL_CALENDAR_2026, 
   SCHOOL_RULES_GUIDE,
   SchoolClass,
   ClassScheduleItem
@@ -60,7 +59,7 @@ export default function SchoolInfoPage({
   onOpenAdminLogin 
 }: SchoolInfoPageProps) {
   // Navigation tabs within page
-  const [activeTab, setActiveTab] = useState<'grade' | 'rotina' | 'geral' | 'calendario' | 'normas' | 'equipe'>('grade');
+  const [activeTab, setActiveTab] = useState<'grade' | 'rotina' | 'geral' | 'normas' | 'equipe'>('grade');
 
   // Schedule filtering state
   const [selectedClassId, setSelectedClassId] = useState<string>('1a');
@@ -229,7 +228,7 @@ export default function SchoolInfoPage({
             <div className="mt-6 flex flex-wrap gap-2 text-xs text-emerald-200">
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/60 rounded-lg border border-emerald-700/60">
                 <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Horário: 07:00 às 17:00</span>
+                <span>Horário: 07:30 às 17:10</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/60 rounded-lg border border-emerald-700/60">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400" />
@@ -269,7 +268,7 @@ export default function SchoolInfoPage({
               }`}
             >
               <Clock className="w-4 h-4" />
-              <span>Rotina Diária (7h às 17h)</span>
+              <span>Rotina Diária (07:30 às 17:10)</span>
             </button>
 
             <button
@@ -282,18 +281,6 @@ export default function SchoolInfoPage({
             >
               <Building2 className="w-4 h-4" />
               <span>Sobre a Escola & Estrutura</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('calendario')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === 'calendario'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'text-stone-600 hover:text-emerald-800 hover:bg-emerald-50'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Calendário Letivo 2026</span>
             </button>
 
             <button
@@ -504,16 +491,16 @@ export default function SchoolInfoPage({
                     </thead>
                     <tbody className="divide-y divide-stone-100 text-xs">
                       
-                      {/* Acolhimento Row */}
-                      <tr className="bg-emerald-50/60 border-y border-emerald-100">
+                      {/* Entrada dos Estudantes */}
+                      <tr className="bg-emerald-50/70 border-y border-emerald-200">
                         <td className="py-2.5 px-4 font-bold text-emerald-950 flex items-center gap-1.5">
-                          <Coffee className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>07:00 - 07:30</span>
+                          <Clock className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>07:30</span>
                         </td>
                         <td colSpan={selectedDayKey === 'todos' ? 5 : 1} className="py-2 px-4 text-emerald-900 font-medium border-l border-emerald-100">
                           <div className="flex items-center justify-between">
-                            <span>Acolhimento Institucional dos Estudantes & Café da Manhã Completo</span>
-                            <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded font-bold">Refeitório & Pátio</span>
+                            <span className="font-semibold text-emerald-950">Entrada dos Estudantes</span>
+                            <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded font-bold">Portão Principal · 07:30</span>
                           </div>
                         </td>
                       </tr>
@@ -820,7 +807,7 @@ export default function SchoolInfoPage({
                   Como Funciona o Dia a Dia no CETI?
                 </h3>
                 <p className="text-stone-600 text-sm sm:text-base mt-2 leading-relaxed">
-                  No Centro Estadual de Tempo Integral Verônica Celestina Dias, a jornada de <strong>07:00 às 17:00</strong> integra o currículo regular com atividades práticas, estudo orientado, alimentação completa e protagonismo juvenil.
+                  No Centro Estadual de Tempo Integral Verônica Celestina Dias, a jornada de <strong>07:30 às 17:10</strong> integra o currículo regular com atividades práticas, estudo orientado, alimentação completa e protagonismo juvenil.
                 </p>
               </div>
 
@@ -857,7 +844,7 @@ export default function SchoolInfoPage({
                           {isMeal ? (
                             <Utensils className="w-5 h-5" />
                           ) : isAcolhimento ? (
-                            <Coffee className="w-5 h-5" />
+                            <Clock className="w-5 h-5" />
                           ) : isClose ? (
                             <Sun className="w-5 h-5" />
                           ) : (
@@ -892,7 +879,7 @@ export default function SchoolInfoPage({
                             ? 'bg-emerald-900 text-emerald-200 border border-emerald-800'
                             : 'bg-stone-100 text-stone-600'
                         }`}>
-                          {slot.type === 'refeicao' ? 'Alimentação Gratuita' : slot.type === 'acolhimento' ? 'Acolhida' : slot.type === 'encerramento' ? 'Encerramento' : 'Tempo Pedagógico'}
+                          {slot.type === 'refeicao' ? 'Alimentação Gratuita' : slot.type === 'acolhimento' ? 'Entrada' : slot.type === 'encerramento' ? 'Encerramento' : 'Tempo Pedagógico'}
                         </span>
                       </div>
                     </div>
@@ -924,7 +911,7 @@ export default function SchoolInfoPage({
                     O <strong>CETI Verônica Celestina Dias</strong> é a principal referência pública estadual de Ensino Médio de Tempo Integral no município de <strong>Campo Alegre do Fidalgo - PI</strong>. 
                   </p>
                   <p className="text-stone-600 text-sm sm:text-base mt-2 leading-relaxed">
-                    Com foco no protagonismo juvenil, o modelo de tempo integral proporciona aos jovens a permanência segura no espaço escolar ao longo de todo o dia, com 4 refeições diárias balanceadas, preparação contínua para o ENEM, laboratórios de ciências e informática, robótica e biblioteca digital ativa.
+                    Com foco no protagonismo juvenil, o modelo de tempo integral proporciona aos jovens a permanência segura no espaço escolar ao longo de todo o dia, com 3 refeições diárias balanceadas (lanche da manhã, almoço e lanche da tarde), preparação contínua para o ENEM, laboratórios de ciências e informática, robótica e biblioteca digital ativa.
                   </p>
                 </div>
 
@@ -944,8 +931,8 @@ export default function SchoolInfoPage({
 
                   <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
                     <p className="text-xs text-emerald-800 font-bold uppercase tracking-wider">Alimentação Escolar</p>
-                    <p className="font-black text-base text-stone-900 mt-0.5">4 Refeições Diárias</p>
-                    <p className="text-xs text-stone-600 mt-1">Café da manhã, lanche matutino, almoço e lanche da tarde.</p>
+                    <p className="font-black text-base text-stone-900 mt-0.5">3 Refeições Diárias</p>
+                    <p className="text-xs text-stone-600 mt-1">Lanche da manhã, almoço e lanche da tarde.</p>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
@@ -1049,7 +1036,7 @@ export default function SchoolInfoPage({
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Refeitório Amplo para as 4 refeições diárias</span>
+                      <span>Refeitório Climatizado para as 3 refeições diárias (lanche da manhã, almoço e lanche da tarde)</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -1065,77 +1052,6 @@ export default function SchoolInfoPage({
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 4: CALENDÁRIO LETIVO 2026                                             */}
-        {/* ========================================================================= */}
-        {activeTab === 'calendario' && (
-          <div className="space-y-8">
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-sm">
-              <div className="max-w-3xl mb-8">
-                <span className="text-emerald-700 font-bold text-xs uppercase tracking-wider">Cronograma Acadêmico</span>
-                <h3 className="text-2xl sm:text-3xl font-black text-stone-900 mt-1">
-                  Calendário Escolar Oficial - Ano Letivo 2026
-                </h3>
-                <p className="text-stone-600 text-sm sm:text-base mt-2 leading-relaxed">
-                  Confira as principais datas de início de bimestres, semanas de avaliações, simulados do ENEM, feiras científicas e recessos escolares homologados pela SEDUC Piauí.
-                </p>
-              </div>
-
-              {/* Events Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {SCHOOL_CALENDAR_2026.map((event, index) => {
-                  const isCurrent = event.status === 'vigente';
-                  const isDone = event.status === 'concluido';
-
-                  return (
-                    <div 
-                      key={index}
-                      className={`p-5 rounded-2xl border transition-all ${
-                        isCurrent
-                          ? 'bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-500/20'
-                          : isDone
-                          ? 'bg-stone-50 border-stone-200 opacity-80'
-                          : 'bg-white border-stone-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                          isCurrent
-                            ? 'bg-emerald-700 text-white'
-                            : isDone
-                            ? 'bg-stone-200 text-stone-700'
-                            : 'bg-emerald-100 text-emerald-900'
-                        }`}>
-                          {event.badge}
-                        </span>
-
-                        <span className="text-[11px] font-semibold text-stone-500 flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-stone-400" />
-                          <span>{event.period}</span>
-                        </span>
-                      </div>
-
-                      <h4 className="font-bold text-base text-stone-900">{event.title}</h4>
-                      <p className="text-xs sm:text-sm text-stone-600 mt-2 leading-relaxed">
-                        {event.description}
-                      </p>
-
-                      <div className="mt-3 pt-2 border-t border-stone-100 flex items-center justify-between text-[11px]">
-                        <span className="text-stone-500">Status:</span>
-                        <span className={`font-bold ${
-                          isCurrent ? 'text-emerald-800' : isDone ? 'text-stone-500' : 'text-blue-700'
-                        }`}>
-                          {isCurrent ? '● Em andamento' : isDone ? '✓ Concluído' : '○ Previsto'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-            </div>
-          </div>
-        )}
 
         {/* ========================================================================= */}
         {/* TAB 5: NORMAS & CONVIVÊNCIA                                                */}

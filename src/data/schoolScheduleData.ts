@@ -34,10 +34,10 @@ export interface DailyRoutineSlot {
 
 export const DAILY_ROUTINE: DailyRoutineSlot[] = [
   {
-    time: '07:00 - 07:30',
-    title: 'Acolhimento & Café da Manhã',
+    time: '07:30',
+    title: 'Entrada dos Estudantes',
     type: 'acolhimento',
-    description: 'Recepção dos alunos, acolhida institucional e café da manhã balanceado preparado pelo PNAE.',
+    description: 'Abertura dos portões, recepção dos estudantes e início das atividades escolares.',
   },
   {
     time: '07:30 - 08:30',
@@ -135,14 +135,14 @@ export const SCHOOL_CLASSES: SchoolClass[] = [
         { id: '1a-seg-8', timeSlot: '16:10 - 17:10', slotNumber: 8, subject: 'Matemática', teacher: 'Profª. Edite', room: 'Sala 01', category: 'matematica' },
       ],
       terca: [
-        { id: '1a-ter-1', timeSlot: '07:30 - 08:30', slotNumber: 1, subject: 'Matemática', teacher: 'Profª. Edite', room: 'Sala 01', category: 'matematica' },
-        { id: '1a-ter-2', timeSlot: '08:30 - 09:30', slotNumber: 2, subject: 'Matemática', teacher: 'Profª. Edite', room: 'Sala 01', category: 'matematica' },
-        { id: '1a-ter-3', timeSlot: '09:50 - 10:50', slotNumber: 3, subject: 'Teoria Geral da Administração (TGA)', teacher: 'Profª. Iolanda', room: 'Sala 01', category: 'diversificada' },
-        { id: '1a-ter-4', timeSlot: '10:50 - 11:50', slotNumber: 4, subject: 'Teoria Geral da Administração (TGA)', teacher: 'Profª. Iolanda', room: 'Sala 01', category: 'diversificada' },
-        { id: '1a-ter-5', timeSlot: '12:50 - 13:50', slotNumber: 5, subject: 'Química Aplicada', teacher: 'Prof. Roberto Mendes', room: 'Lab. Ciências', category: 'natureza' },
-        { id: '1a-ter-6', timeSlot: '13:50 - 14:50', slotNumber: 6, subject: 'História & Sociedade', teacher: 'Prof. Marcos Silva', room: 'Sala 01', category: 'humanas' },
-        { id: '1a-ter-7', timeSlot: '15:10 - 16:10', slotNumber: 7, subject: 'Projeto de Vida', teacher: 'Profª. Aline Costa', room: 'Sala 01', category: 'diversificada' },
-        { id: '1a-ter-8', timeSlot: '16:10 - 17:10', slotNumber: 8, subject: 'Educação Física', teacher: 'Prof. Rodrigo Matos', room: 'Quadra', category: 'linguagens' },
+        { id: '1a-ter-1', timeSlot: '07:30 - 08:30', slotNumber: 1, subject: 'Comunicação Empresarial (Comu. Emp.)', teacher: 'Profª. Iolanda', room: 'Sala 01', category: 'diversificada' },
+        { id: '1a-ter-2', timeSlot: '08:30 - 09:30', slotNumber: 2, subject: 'Física', teacher: 'Prof. Valdivino', room: 'Sala 01', category: 'natureza' },
+        { id: '1a-ter-3', timeSlot: '09:50 - 10:50', slotNumber: 3, subject: 'Química', teacher: 'Prof. Avelar', room: 'Lab. Ciências', category: 'natureza' },
+        { id: '1a-ter-4', timeSlot: '10:50 - 11:50', slotNumber: 4, subject: 'Física', teacher: 'Prof. Valdivino', room: 'Sala 01', category: 'natureza' },
+        { id: '1a-ter-5', timeSlot: '12:50 - 13:50', slotNumber: 5, subject: 'Biologia', teacher: 'Prof. Dhones', room: 'Lab. Ciências', category: 'natureza' },
+        { id: '1a-ter-6', timeSlot: '13:50 - 14:50', slotNumber: 6, subject: 'Matemática', teacher: 'Profª. Edite', room: 'Sala 01', category: 'matematica' },
+        { id: '1a-ter-7', timeSlot: '15:10 - 16:10', slotNumber: 7, subject: 'Educação Financeira (Ed. Financeira)', teacher: 'Profª. Iolanda', room: 'Sala 01', category: 'diversificada' },
+        { id: '1a-ter-8', timeSlot: '16:10 - 17:10', slotNumber: 8, subject: 'Comunicação Empresarial (Comu. Emp.)', teacher: 'Profª. Iolanda', room: 'Sala 01', category: 'diversificada' },
       ],
       quarta: [
         { id: '1a-qua-1', timeSlot: '07:30 - 08:30', slotNumber: 1, subject: 'Biologia', teacher: 'Prof. Dhones', room: 'Lab. Ciências', category: 'natureza' },
@@ -464,7 +464,7 @@ export const SCHOOL_STAFF: SchoolStaffMember[] = [
     role: 'Nutrição & Alimentação Escolar',
     name: 'Equipe do Programa de Alimentação Escolar (PNAE/SEDUC)',
     department: 'Refeitório e Nutrição',
-    description: 'Supervisão de 4 refeições diárias balanceadas (café da manhã, lanche matutino, almoço completo e lanche vespertino).',
+    description: 'Supervisão de 3 refeições diárias balanceadas (lanche da manhã, almoço completo e lanche da tarde).',
   },
   {
     role: 'Biblioteca Digital & Sala de Estudos',
@@ -562,10 +562,10 @@ export const SCHOOL_RULES_GUIDE: SchoolRuleGuide[] = [
   {
     iconName: 'Clock',
     title: 'Horários & Pontualidade',
-    highlight: 'Entrada às 07:00 com início das aulas às 07:30',
+    highlight: 'Entrada pontual às 07:30 e encerramento às 17:10',
     items: [
-      'Os portões abrem às 06:45 para acolhimento e café da manhã dos estudantes do transporte.',
-      'Aulas iniciam pontualmente às 07:30 e encerram às 17:10.',
+      'Entrada dos estudantes pontualmente às 07:30 para o início das aulas.',
+      'Aulas iniciam às 07:30 e encerram às 17:10 com pontualidade.',
       'Saídas antecipadas são autorizadas estritamente com presença ou autorização expressa dos pais/responsáveis.',
     ],
   },
@@ -582,10 +582,10 @@ export const SCHOOL_RULES_GUIDE: SchoolRuleGuide[] = [
   {
     iconName: 'Utensils',
     title: 'Alimentação Escolar Completa',
-    highlight: '4 refeições diárias de qualidade gratuita',
+    highlight: 'Refeições balanceadas e gratuitas ao longo do dia',
     items: [
       'Todos os estudantes têm direito ao cardápio balanceado elaborado por nutricionistas da SEDUC.',
-      'É servido: Café da Manhã (07:00), Lanche da Manhã (09:30), Almoço Completo (11:50) e Lanche da Tarde (14:50).',
+      'São servidos: Lanche da Manhã (09:30), Almoço Completo (11:50) e Lanche da Tarde (14:50).',
       'Restrições alimentares (alergias, diabetes, intolerâncias) devem ser informadas na secretaria escolar.',
     ],
   },

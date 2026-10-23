@@ -11,7 +11,6 @@ import {
   LifeBuoy, 
   Copy, 
   Check, 
-  GraduationCap,
   MessageCircleWarning,
   User,
   Users,
@@ -94,7 +93,16 @@ export default function BullyingReportPage({ onBackToHome }: BullyingReportPageP
     e.preventDefault();
     setIsSubmitting(true);
 
-    const effectiveReporterName = reporterRole === 'vitima' ? victimName : reporterName;
+    const roleLabelMap: Record<string, string> = {
+      vitima: 'A própria vítima',
+      colega: 'Colega de turma / Amigo',
+      responsavel: 'Pai, Mãe ou Responsável',
+      professor: 'Professor(a) / Servidor',
+      outro: 'Membro da Comunidade Escolar'
+    };
+    const effectiveReporterName = reporterRole === 'vitima' 
+      ? victimName 
+      : (reporterName.trim() || roleLabelMap[reporterRole] || 'Identidade Preservada');
 
     setTimeout(() => {
       const randomCode = 'VCD-DEN-' + Math.floor(100000 + Math.random() * 900000);
@@ -432,26 +440,8 @@ export default function BullyingReportPage({ onBackToHome }: BullyingReportPageP
               </div>
 
               {/* Informações de contato de quem relata */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="space-y-1.5">
-                  <label htmlFor="reporterName" className="block text-sm font-semibold text-stone-800">
-                    Nome de quem está registrando *
-                  </label>
-                  <input
-                    type="text"
-                    id="reporterName"
-                    required
-                    value={reporterRole === 'vitima' ? victimName : reporterName}
-                    onChange={(e) => setReporterName(e.target.value)}
-                    disabled={reporterRole === 'vitima'}
-                    placeholder={reporterRole === 'vitima' ? 'Mesmo nome da vítima preenchido acima' : 'Seu nome completo'}
-                    className={`w-full px-4 py-2.5 border border-stone-300 rounded-xl focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-stone-900 text-sm ${
-                      reporterRole === 'vitima' ? 'bg-stone-100 text-stone-600 cursor-not-allowed' : 'bg-white'
-                    }`}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
+              <div className="pt-2">
+                <div className="space-y-1.5 max-w-md">
                   <label htmlFor="reporterContact" className="block text-sm font-semibold text-stone-800">
                     Telefone / WhatsApp para contato da gestão *
                   </label>
@@ -723,8 +713,12 @@ export default function BullyingReportPage({ onBackToHome }: BullyingReportPageP
       {/* Subsite Footer */}
       <footer className="bg-emerald-950 text-emerald-200/90 py-8 border-t border-emerald-900 text-xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-emerald-400" />
+          <div className="flex items-center gap-2.5">
+            <img 
+              src="/assets/aistudio/branco_transparente_0a853876.png" 
+              alt="Logo CETI Verônica Celestina Dias" 
+              className="h-7 w-7 object-contain drop-shadow-sm brightness-110" 
+            />
             <span className="font-bold text-white text-sm">CETI Verônica Celestina Dias</span>
           </div>
           <div className="text-center sm:text-right">

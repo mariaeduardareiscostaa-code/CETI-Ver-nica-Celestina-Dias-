@@ -30,8 +30,12 @@ import {
   FileText,
   HelpCircle,
   Share2,
-  Lock
+  Lock,
+  Download,
+  Loader2
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { 
   SCHOOL_CLASSES, 
   DAILY_ROUTINE, 
@@ -123,8 +127,186 @@ export default function SchoolInfoPage({
     });
   };
 
-  const handlePrintSchedule = () => {
-    window.print();
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const handleDownloadPdf = () => {
+    try {
+      setIsGeneratingPdf(true);
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      // Dark emerald institutional banner
+      doc.setFillColor(6, 78, 59);
+      doc.rect(0, 0, 297, 26, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text('CETI VERÔNICA CELESTINA DIAS', 14, 9);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Secretaria de Estado da Educação do Piauí - SEDUC | Campo Alegre do Fidalgo - PI', 14, 15);
+      doc.text('Horário de Aulas · Tempo Integral (07:30 às 17:10) · Ano Letivo 2026', 14, 21);
+
+      // Class Information
+      doc.setTextColor(30, 41, 59);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(`Turma: ${currentClass.name}`, 14, 32);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Turno: ${currentClass.shift}   |   Local: ${currentClass.roomNumber}   |   Professor(a) Tutor(a): ${currentClass.advisorTeacher}`, 14, 37);
+
+      const getCellContent = (dayKey: 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta', slotNum: number) => {
+        const item = currentClass.schedule[dayKey]?.find(it => it.slotNumber === slotNum);
+        if (!item) return '-';
+        return `${item.subject}\n(${item.teacher})`;
+      };
+
+      const tableHead = [
+        ['Horário / Aula', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira']
+      ];
+
+      const tableBody: any[] = [
+        [
+          { content: '07:30\nEntrada', styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: 'Entrada dos Estudantes · Portão Principal (07:30)', colSpan: 5, styles: { fillColor: [240, 253, 244], textColor: [22, 101, 52], halign: 'center', fontStyle: 'bold' } }
+        ],
+        [
+          { content: '1ª Aula\n07:30 - 08:30', styles: { fontStyle: 'bold' } },
+          getCellContent('segunda', 1),
+          getCellContent('terca', 1),
+          getCellContent('quarta', 1),
+          getCellContent('quinta', 1),
+          getCellContent('sexta', 1),
+        ],
+        [
+          { content: '2ª Aula\n08:30 - 09:30', styles: { fontStyle: 'bold' } },
+          getCellContent('segunda', 2),
+          getCellContent('terca', 2),
+          getCellContent('quarta', 2),
+          getCellContent('quinta', 2),
+          getCellContent('sexta', 2),
+        ],
+        [
+          { content: '09:30 - 09:50\nIntervalo', styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: 'Intervalo / Lanche Matutino (PNAE) & Convivência (20 min)', colSpan: 5, styles: { fillColor: [254, 243, 199], textColor: [120, 53, 15], halign: 'center', fontStyle: 'bold' } }
+        ],
+        [
+          { content: '3ª Aula\n09:50 - 10:50', styles: { fontStyle: 'bold' } },
+          getCellContent('segunda', 3),
+          getCellContent('terca', 3),
+          getCellContent('quarta', 3),
+          getCellContent('quinta', 3),
+          getCellContent('sexta', 3),
+        ],
+        [
+          { content: '4ª Aula\n10:50 - 11:50', styles: { fontStyle: 'bold' } },
+          getCellContent('segunda', 4),
+          getCellContent('terca', 4),
+          getCellContent('quarta', 4),
+          getCellContent('quinta', 4),
+          getCellContent('sexta', 4),
+        ],
+        [
+          { content: '11:50 - 12:50\nAlmoço', styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: 'Almoço Escolar Completo & Intervalo de Descanso Orientado (1 hora)', colSpan: 5, styles: { fillColor: [209, 250, 229], textColor: [6, 78, 59], halign: 'center', fontStyle: 'bold' } }
+        ],
+        [
+          { content: '5ª Aula\n12:50 - 13:50', styles: { fontStyle: 'bold' } },
+          getCellContent('segunda', 5),
+          getCellContent('terca', 5),
+          getCellContent('quarta', 5),
+          getCellContent('quinta', 5),
+          getCellContent('sexta', 5),
+        ],
+        [
+          { content: '6ª Aula\n13:50 - 14:50', styles: { fontStyle: 'bold' } },
+          getCellContent('segunda', 6),
+          getCellContent('terca', 6),
+          getCellContent('quarta', 6),
+          getCellContent('quinta', 6),
+          getCellContent('sexta', 6),
+        ],
+        [
+          { content: '14:50 - 15:10\nIntervalo', styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: 'Intervalo & Lanche da Tarde (20 min)', colSpan: 5, styles: { fillColor: [254, 243, 199], textColor: [120, 53, 15], halign: 'center', fontStyle: 'bold' } }
+        ],
+        [
+          { content: '7ª Aula\n15:10 - 16:10', styles: { fontStyle: 'bold' } },
+          getCellContent('segunda', 7),
+          getCellContent('terca', 7),
+          getCellContent('quarta', 7),
+          getCellContent('quinta', 7),
+          getCellContent('sexta', 7),
+        ],
+        [
+          { content: '8ª Aula\n16:10 - 17:10', styles: { fontStyle: 'bold' } },
+          getCellContent('segunda', 8),
+          getCellContent('terca', 8),
+          getCellContent('quarta', 8),
+          getCellContent('quinta', 8),
+          getCellContent('sexta', 8),
+        ],
+        [
+          { content: '17:10\nTérmino', styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: 'Término das Atividades Letivas & Embarque no Transporte Escolar (17:10)', colSpan: 5, styles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], halign: 'center', fontStyle: 'bold' } }
+        ]
+      ];
+
+      autoTable(doc, {
+        head: tableHead,
+        body: tableBody,
+        startY: 40,
+        theme: 'grid',
+        styles: {
+          fontSize: 7.2,
+          cellPadding: 1.6,
+          valign: 'middle',
+          lineColor: [226, 232, 240],
+          lineWidth: 0.2,
+        },
+        headStyles: {
+          fillColor: [6, 78, 59],
+          textColor: [255, 255, 255],
+          fontSize: 8.5,
+          fontStyle: 'bold',
+          halign: 'center',
+        },
+        columnStyles: {
+          0: { cellWidth: 27, halign: 'center' },
+          1: { cellWidth: 52 },
+          2: { cellWidth: 52 },
+          3: { cellWidth: 52 },
+          4: { cellWidth: 52 },
+          5: { cellWidth: 52 },
+        },
+        margin: { left: 5, right: 5, bottom: 8 },
+      });
+
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text(
+        `Documento oficial gerado eletronicamente pelo Portal CETI Verônica Celestina Dias em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+        14,
+        pageHeight - 4
+      );
+
+      const safeClassName = currentClass.shortName.replace(/[^a-zA-Z0-9]/g, '_');
+      doc.save(`Grade_Horarios_CETI_${safeClassName}.pdf`);
+    } catch (err) {
+      console.error('Erro ao gerar PDF:', err);
+      window.print();
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   return (
@@ -189,13 +371,23 @@ export default function SchoolInfoPage({
               )}
 
               <button
-                onClick={handlePrintSchedule}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:text-white bg-emerald-900 hover:bg-emerald-800 border border-emerald-700/80 rounded-lg transition-colors cursor-pointer shadow-xs active:scale-95"
-                title="Imprimir informações ou salvar em PDF"
+                onClick={handleDownloadPdf}
+                disabled={isGeneratingPdf}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:text-white bg-emerald-900 hover:bg-emerald-800 border border-emerald-700/80 rounded-lg transition-colors cursor-pointer shadow-xs active:scale-95 disabled:opacity-70"
+                title="Baixar grade de horários em PDF"
               >
-                <Printer className="w-3.5 h-3.5 text-emerald-300" />
-                <span className="hidden sm:inline">Imprimir / Salvar PDF</span>
-                <span className="sm:hidden">Imprimir</span>
+                {isGeneratingPdf ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-300" />
+                    <span>Baixando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5 text-emerald-300" />
+                    <span className="hidden sm:inline">Baixar Grade em PDF</span>
+                    <span className="sm:hidden">Baixar PDF</span>
+                  </>
+                )}
               </button>
             </div>
 
@@ -786,15 +978,25 @@ export default function SchoolInfoPage({
               <div className="space-y-1 text-center sm:text-left">
                 <h4 className="font-bold text-emerald-950 text-base">Precisa da grade impressa para colocar no caderno ou na geladeira?</h4>
                 <p className="text-stone-600 text-xs sm:text-sm">
-                  Utilize o botão de impressão para gerar um PDF oficial diagramado e pronto para os alunos e famílias.
+                  Baixe o arquivo PDF oficial com a grade semanal diagramada e pronta para imprimir ou salvar no seu aparelho.
                 </p>
               </div>
               <button
-                onClick={handlePrintSchedule}
-                className="inline-flex items-center gap-2 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                onClick={handleDownloadPdf}
+                disabled={isGeneratingPdf}
+                className="inline-flex items-center gap-2 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-all shadow-sm active:scale-95 cursor-pointer shrink-0 disabled:opacity-70"
               >
-                <Printer className="w-4 h-4" />
-                <span>Imprimir Grade da Turma</span>
+                {isGeneratingPdf ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Gerando PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Baixar Grade em PDF</span>
+                  </>
+                )}
               </button>
             </div>
 

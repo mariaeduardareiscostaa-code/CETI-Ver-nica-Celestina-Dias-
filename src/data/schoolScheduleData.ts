@@ -185,7 +185,7 @@ export const SCHOOL_CLASSES: SchoolClass[] = [
     grade: '1º Ano EM · Curso Técnico em Administração',
     shift: 'Tempo Integral (07:30 às 17:10)',
     roomNumber: 'Sala 02 - Bloco Didático',
-    advisorTeacher: 'Profª. Iolanda (Administração & Gestão)',
+    advisorTeacher: 'Prof. Ricardo (Específica)',
     schedule: {
       segunda: [
         { id: '1b-seg-1', timeSlot: '07:30 - 08:30', slotNumber: 1, subject: 'Português', teacher: 'Profª. Naiara', room: 'Sala 02', category: 'linguagens' },

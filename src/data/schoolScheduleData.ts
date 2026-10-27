@@ -600,3 +600,75 @@ export const SCHOOL_RULES_GUIDE: SchoolRuleGuide[] = [
     ],
   },
 ];
+
+export const SCHEDULE_STORAGE_KEY = 'vcd_school_classes_data';
+
+export const COMMON_TEACHERS = [
+  'Profª. Naiara',
+  'Profª. Edite',
+  'Prof. Dhones',
+  'Prof. Ricardo',
+  'Profª. Iolanda',
+  'Prof. Djalma',
+  'Profª. Lília',
+  'Profª. Elayne',
+  'Prof. Valdivino',
+  'Prof. Avelar',
+  'Prof. Clarisvaldo',
+  'Prof. Valdenir',
+  'Profª. Sirleide',
+  'Profª. Betânia',
+];
+
+export const COMMON_ROOMS = [
+  'Sala 01',
+  'Sala 02',
+  'Sala 03',
+  'Sala 04',
+  'Sala 05',
+  'Sala 06',
+  'Lab. Informática',
+  'Lab. Ciências',
+  'Quadra',
+  'Biblioteca',
+  'Pátio / Auditório'
+];
+
+export function getStoredSchoolClasses(): SchoolClass[] {
+  try {
+    const raw = localStorage.getItem(SCHEDULE_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao ler horários salvos do localStorage:', err);
+  }
+  return SCHOOL_CLASSES;
+}
+
+export function saveStoredSchoolClasses(classes: SchoolClass[]): void {
+  try {
+    localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(classes));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('vcd_schedule_updated'));
+    }
+  } catch (err) {
+    console.error('Erro ao salvar horários no localStorage:', err);
+  }
+}
+
+export function resetStoredSchoolClasses(): SchoolClass[] {
+  try {
+    localStorage.removeItem(SCHEDULE_STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('vcd_schedule_updated'));
+    }
+  } catch (err) {
+    console.error('Erro ao resetar horários no localStorage:', err);
+  }
+  return SCHOOL_CLASSES;
+}
+

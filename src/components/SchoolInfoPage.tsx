@@ -1420,9 +1420,14 @@ export default function SchoolInfoPage({
               )}
             </div>
 
-            <p className="text-xs text-emerald-400/80">
-              R. Marino Caetano · Campo Alegre do Fidalgo - PI
-            </p>
+            <div className="text-center md:text-right space-y-1">
+              <p className="text-xs text-emerald-300 font-semibold">
+                Site escolar desenvolvido por alunos da 3ª série desenvolvimento de sistemas
+              </p>
+              <p className="text-xs text-emerald-400/80">
+                R. Marino Caetano · Campo Alegre do Fidalgo - PI
+              </p>
+            </div>
           </div>
         </div>
       </footer>

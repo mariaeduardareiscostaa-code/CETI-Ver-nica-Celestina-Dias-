@@ -29,9 +29,21 @@ import {
   Plus,
   Trash2,
   Image as ImageIcon,
-  Upload
+  Upload,
+  CalendarDays,
+  Pencil,
+  RotateCcw
 } from 'lucide-react';
 import { BookReservation, Book, INITIAL_BOOKS, PRESET_BOOK_COVERS } from '../data/libraryBooks';
+import { 
+  SchoolClass, 
+  ClassScheduleItem, 
+  getStoredSchoolClasses, 
+  saveStoredSchoolClasses, 
+  resetStoredSchoolClasses, 
+  COMMON_TEACHERS, 
+  COMMON_ROOMS 
+} from '../data/schoolScheduleData';
 
 interface AdminPanelProps {
   onBackToHome: () => void;
@@ -84,7 +96,31 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
   const [accessKey, setAccessKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState<'bullying' | 'messages' | 'stats' | 'library'>('bullying');
+  const [activeTab, setActiveTab] = useState<'bullying' | 'messages' | 'stats' | 'library' | 'schedules'>('bullying');
+
+  // Schedule Management in Admin
+  const [adminScheduleClasses, setAdminScheduleClasses] = useState<SchoolClass[]>(() => getStoredSchoolClasses());
+  const [selectedAdminClassId, setSelectedAdminClassId] = useState<string>('1a');
+  const [selectedAdminDay, setSelectedAdminDay] = useState<'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta'>('segunda');
+  const [adminEditingLesson, setAdminEditingLesson] = useState<{
+    classId: string;
+    dayKey: 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta';
+    slotNumber: number;
+    timeSlot: string;
+    subject: string;
+    teacher: string;
+    room: string;
+    category: 'linguagens' | 'matematica' | 'natureza' | 'humanas' | 'diversificada';
+  } | null>(null);
+  const [adminEditingClassInfo, setAdminEditingClassInfo] = useState<{
+    id: string;
+    name: string;
+    shortName: string;
+    advisorTeacher: string;
+    roomNumber: string;
+    shift: string;
+  } | null>(null);
+  const [adminScheduleFeedback, setAdminScheduleFeedback] = useState<string>('');
 
   // Bullying Reports state
   const [reports, setReports] = useState<BullyingReport[]>([]);
@@ -377,6 +413,107 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
       localStorage.setItem('vcd_admin_logged_in', 'true');
     } else {
       setLoginError('Chave de acesso incorreta. Por favor, verifique a chave informada.');
+    }
+  };
+
+
+  const currentAdminClass = adminScheduleClasses.find(c => c.id === selectedAdminClassId) || adminScheduleClasses[0];
+
+  const handleAdminSaveLesson = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEditingLesson) return;
+
+    const updated = adminScheduleClasses.map(c => {
+      if (c.id !== adminEditingLesson.classId) return c;
+      const daySchedule = [...(c.schedule[adminEditingLesson.dayKey] || [])];
+      const idx = daySchedule.findIndex(it => it.slotNumber === adminEditingLesson.slotNumber);
+      if (idx >= 0) {
+        daySchedule[idx] = {
+          ...daySchedule[idx],
+          subject: adminEditingLesson.subject.trim(),
+          teacher: adminEditingLesson.teacher.trim(),
+          room: adminEditingLesson.room.trim() || c.roomNumber,
+          category: adminEditingLesson.category,
+        };
+      } else {
+        daySchedule.push({
+          id: `${adminEditingLesson.classId}-${adminEditingLesson.dayKey}-${adminEditingLesson.slotNumber}`,
+          slotNumber: adminEditingLesson.slotNumber,
+          timeSlot: adminEditingLesson.timeSlot,
+          subject: adminEditingLesson.subject.trim(),
+          teacher: adminEditingLesson.teacher.trim(),
+          room: adminEditingLesson.room.trim() || c.roomNumber,
+          category: adminEditingLesson.category,
+        });
+      }
+      daySchedule.sort((a, b) => a.slotNumber - b.slotNumber);
+      return {
+        ...c,
+        schedule: {
+          ...c.schedule,
+          [adminEditingLesson.dayKey]: daySchedule
+        }
+      };
+    });
+
+    setAdminScheduleClasses(updated);
+    saveStoredSchoolClasses(updated);
+    setAdminEditingLesson(null);
+    setAdminScheduleFeedback('Aula atualizada e salva com sucesso!');
+    setTimeout(() => setAdminScheduleFeedback(''), 3500);
+  };
+
+  const handleAdminClearLesson = () => {
+    if (!adminEditingLesson) return;
+    const updated = adminScheduleClasses.map(c => {
+      if (c.id !== adminEditingLesson.classId) return c;
+      const daySchedule = (c.schedule[adminEditingLesson.dayKey] || []).filter(
+        it => it.slotNumber !== adminEditingLesson.slotNumber
+      );
+      return {
+        ...c,
+        schedule: {
+          ...c.schedule,
+          [adminEditingLesson.dayKey]: daySchedule
+        }
+      };
+    });
+
+    setAdminScheduleClasses(updated);
+    saveStoredSchoolClasses(updated);
+    setAdminEditingLesson(null);
+    setAdminScheduleFeedback('Horário deixado vago com sucesso.');
+    setTimeout(() => setAdminScheduleFeedback(''), 3500);
+  };
+
+  const handleAdminSaveClassInfo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEditingClassInfo) return;
+    const updated = adminScheduleClasses.map(c => {
+      if (c.id !== adminEditingClassInfo.id) return c;
+      return {
+        ...c,
+        name: adminEditingClassInfo.name.trim(),
+        shortName: adminEditingClassInfo.shortName.trim(),
+        advisorTeacher: adminEditingClassInfo.advisorTeacher.trim(),
+        roomNumber: adminEditingClassInfo.roomNumber.trim(),
+        shift: adminEditingClassInfo.shift.trim(),
+      };
+    });
+
+    setAdminScheduleClasses(updated);
+    saveStoredSchoolClasses(updated);
+    setAdminEditingClassInfo(null);
+    setAdminScheduleFeedback('Dados da turma atualizados com sucesso!');
+    setTimeout(() => setAdminScheduleFeedback(''), 3500);
+  };
+
+  const handleAdminResetSchedules = () => {
+    if (window.confirm('Tem certeza que deseja restaurar a grade de horários original de todas as turmas?')) {
+      const reset = resetStoredSchoolClasses();
+      setAdminScheduleClasses(reset);
+      setAdminScheduleFeedback('Horários restaurados para o padrão oficial.');
+      setTimeout(() => setAdminScheduleFeedback(''), 3500);
     }
   };
 
@@ -681,6 +818,18 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
           </button>
 
           <button
+            onClick={() => setActiveTab('schedules')}
+            className={`pb-3 px-4 font-semibold text-sm border-b-2 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer ${
+              activeTab === 'schedules'
+                ? 'border-emerald-700 text-emerald-900'
+                : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            <CalendarDays className="w-4 h-4" />
+            <span>Grade de Horários</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('stats')}
             className={`pb-3 px-4 font-semibold text-sm border-b-2 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer ${
               activeTab === 'stats'
@@ -692,6 +841,208 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
             <span>Indicadores</span>
           </button>
         </div>
+
+        
+        {/* Tab 5: Grade de Horários Management */}
+        {activeTab === 'schedules' && (
+          <div className="bg-white rounded-b-2xl p-6 border border-stone-200 border-t-0 space-y-6">
+            
+            {/* Header & Quick Actions */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone-100 pb-5">
+              <div>
+                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold mb-1">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>Gestão Pedagógica · Ano Letivo 2026</span>
+                </div>
+                <h3 className="text-xl font-black text-stone-900">
+                  Gerenciamento da Grade de Horários
+                </h3>
+                <p className="text-stone-500 text-xs sm:text-sm mt-0.5">
+                  Altere matérias, professores, salas e tutores de cada turma. As alterações são refletidas imediatamente no site da escola.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.hash = '#horarios-escola';
+                    onBackToHome();
+                  }}
+                  className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Ver Grade no Portal</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAdminResetSchedules}
+                  className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title="Restaurar a grade padrão oficial"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Restaurar Padrão</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Notification Feedback */}
+            {adminScheduleFeedback && (
+              <div className="p-3.5 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-2xl text-xs font-bold flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-700" />
+                <span>{adminScheduleFeedback}</span>
+              </div>
+            )}
+
+            {/* Class Selector */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block">
+                Selecione a Turma para Gerenciar:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {adminScheduleClasses.map(cls => (
+                  <button
+                    key={cls.id}
+                    onClick={() => setSelectedAdminClassId(cls.id)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      selectedAdminClassId === cls.id
+                        ? 'bg-emerald-800 text-white shadow-xs'
+                        : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                    }`}
+                  >
+                    {cls.shortName}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Class Info Box */}
+            <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div>
+                <h4 className="font-black text-stone-900 text-base">
+                  {currentAdminClass.name}
+                </h4>
+                <p className="text-xs text-stone-600 mt-0.5">
+                  {currentAdminClass.shift} · Local: <strong>{currentAdminClass.roomNumber}</strong> · Professor(a) Tutor(a): <strong>{currentAdminClass.advisorTeacher}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdminEditingClassInfo({
+                  id: currentAdminClass.id,
+                  name: currentAdminClass.name,
+                  shortName: currentAdminClass.shortName,
+                  advisorTeacher: currentAdminClass.advisorTeacher,
+                  roomNumber: currentAdminClass.roomNumber,
+                  shift: currentAdminClass.shift,
+                })}
+                className="px-3.5 py-1.5 bg-white text-emerald-900 font-bold text-xs rounded-xl border border-stone-200 hover:bg-emerald-50 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Pencil className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Editar Dados da Turma</span>
+              </button>
+            </div>
+
+            {/* Weekday Selector */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block">
+                Dia da Semana:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'segunda', label: 'Segunda-feira' },
+                  { key: 'terca', label: 'Terça-feira' },
+                  { key: 'quarta', label: 'Quarta-feira' },
+                  { key: 'quinta', label: 'Quinta-feira' },
+                  { key: 'sexta', label: 'Sexta-feira' },
+                ].map(d => (
+                  <button
+                    key={d.key}
+                    onClick={() => setSelectedAdminDay(d.key as any)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      selectedAdminDay === d.key
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Schedule Lessons List */}
+            <div className="border border-stone-200 rounded-2xl overflow-hidden divide-y divide-stone-100">
+              <div className="bg-stone-100 px-4 py-2.5 text-xs font-bold text-stone-600 grid grid-cols-12 gap-3 items-center">
+                <span className="col-span-2">Aula / Horário</span>
+                <span className="col-span-4">Disciplina / Matéria</span>
+                <span className="col-span-3">Professor(a)</span>
+                <span className="col-span-2">Sala / Local</span>
+                <span className="col-span-1 text-right">Ação</span>
+              </div>
+
+              {[
+                { slot: 1, time: '07:30 - 08:30' },
+                { slot: 2, time: '08:30 - 09:30' },
+                { slot: 3, time: '09:50 - 10:50' },
+                { slot: 4, time: '10:50 - 11:50' },
+                { slot: 5, time: '12:50 - 13:50' },
+                { slot: 6, time: '13:50 - 14:50' },
+                { slot: 7, time: '15:10 - 16:10' },
+                { slot: 8, time: '16:10 - 17:10' },
+              ].map(({ slot, time }) => {
+                const dayLessons = currentAdminClass.schedule[selectedAdminDay] || [];
+                const lesson = dayLessons.find(it => it.slotNumber === slot);
+
+                return (
+                  <div key={slot} className="px-4 py-3 text-xs grid grid-cols-12 gap-3 items-center hover:bg-stone-50 transition-colors">
+                    <div className="col-span-2">
+                      <span className="font-extrabold text-emerald-950 block">{slot}ª Aula</span>
+                      <span className="text-[10px] text-stone-400">{time}</span>
+                    </div>
+
+                    <div className="col-span-4">
+                      {lesson ? (
+                        <div className="font-bold text-stone-900 text-sm">{lesson.subject}</div>
+                      ) : (
+                        <span className="text-stone-300 italic">Horário vago</span>
+                      )}
+                    </div>
+
+                    <div className="col-span-3 font-medium text-stone-700">
+                      {lesson ? lesson.teacher : '-'}
+                    </div>
+
+                    <div className="col-span-2 text-stone-600">
+                      {lesson ? lesson.room : '-'}
+                    </div>
+
+                    <div className="col-span-1 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setAdminEditingLesson({
+                          classId: currentAdminClass.id,
+                          dayKey: selectedAdminDay,
+                          slotNumber: slot,
+                          timeSlot: time,
+                          subject: lesson?.subject || '',
+                          teacher: lesson?.teacher || '',
+                          room: lesson?.room || currentAdminClass.roomNumber,
+                          category: (lesson?.category || 'diversificada') as any,
+                        })}
+                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-lg transition-colors border border-emerald-200 cursor-pointer"
+                        title="Modificar aula"
+                      >
+                        Editar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+          </div>
+        )}
 
         {/* Tab 1: Bullying Reports Management */}
         {activeTab === 'bullying' && (
@@ -1380,6 +1731,257 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
         )}
 
       </main>
+
+      
+      {/* Admin Modal: Editar Aula */}
+      {adminEditingLesson && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto space-y-4">
+            <div className="flex items-start justify-between border-b border-stone-200 pb-3">
+              <div>
+                <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider block">
+                  Painel Administrativo · Alterar Aula
+                </span>
+                <h3 className="text-lg font-black text-stone-900 mt-0.5">
+                  {adminEditingLesson.slotNumber}ª Aula ({adminEditingLesson.timeSlot})
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Turma: <strong>{currentAdminClass.shortName}</strong> · Dia: <strong>{adminEditingLesson.dayKey}</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => setAdminEditingLesson(null)}
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAdminSaveLesson} className="space-y-4 text-xs">
+              <div>
+                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                  Disciplina / Matéria:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={adminEditingLesson.subject}
+                  onChange={(e) => setAdminEditingLesson({ ...adminEditingLesson, subject: e.target.value })}
+                  placeholder="Ex: Português, Matemática, Biologia..."
+                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 font-semibold"
+                />
+                <div className="mt-2 flex flex-wrap gap-1 text-[11px]">
+                  <span className="text-stone-400 py-0.5 mr-1">Sugestões:</span>
+                  {['Português', 'Matemática', 'Biologia', 'Física', 'Química', 'História', 'Geografia', 'Filosofia', 'Sociologia', 'Inglês', 'Espanhol', 'Arte', 'Ed. Física', 'Projeto de Vida', 'Específica'].map(sub => (
+                    <button
+                      type="button"
+                      key={sub}
+                      onClick={() => setAdminEditingLesson({ ...adminEditingLesson, subject: sub })}
+                      className="px-2 py-0.5 bg-stone-100 hover:bg-emerald-100 text-stone-700 hover:text-emerald-900 rounded border border-stone-200 transition-colors cursor-pointer"
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                  Professor(a) Responsável:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={adminEditingLesson.teacher}
+                  onChange={(e) => setAdminEditingLesson({ ...adminEditingLesson, teacher: e.target.value })}
+                  placeholder="Ex: Profª. Naiara, Prof. Ricardo, Prof. Dhones..."
+                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                />
+                <div className="mt-2 flex flex-wrap gap-1 text-[11px] max-h-24 overflow-y-auto">
+                  <span className="text-stone-400 py-0.5 mr-1">Docentes:</span>
+                  {COMMON_TEACHERS.map(prof => (
+                    <button
+                      type="button"
+                      key={prof}
+                      onClick={() => setAdminEditingLesson({ ...adminEditingLesson, teacher: prof })}
+                      className="px-2 py-0.5 bg-stone-100 hover:bg-emerald-100 text-stone-700 hover:text-emerald-900 rounded border border-stone-200 transition-colors cursor-pointer"
+                    >
+                      {prof}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                    Sala / Ambiente:
+                  </label>
+                  <input
+                    type="text"
+                    value={adminEditingLesson.room}
+                    onChange={(e) => setAdminEditingLesson({ ...adminEditingLesson, room: e.target.value })}
+                    placeholder="Ex: Sala 01, Lab. Informática..."
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                  />
+                  <div className="mt-1.5 flex flex-wrap gap-1 text-[10px]">
+                    {COMMON_ROOMS.slice(0, 6).map(r => (
+                      <button
+                        type="button"
+                        key={r}
+                        onClick={() => setAdminEditingLesson({ ...adminEditingLesson, room: r })}
+                        className="px-1.5 py-0.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded cursor-pointer"
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                    Área do Conhecimento:
+                  </label>
+                  <select
+                    value={adminEditingLesson.category}
+                    onChange={(e) => setAdminEditingLesson({ ...adminEditingLesson, category: e.target.value as any })}
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 font-semibold cursor-pointer"
+                  >
+                    <option value="linguagens">Linguagens & Códigos</option>
+                    <option value="matematica">Matemática</option>
+                    <option value="natureza">Ciências da Natureza</option>
+                    <option value="humanas">Ciências Humanas</option>
+                    <option value="diversificada">Itinerários / Diversificada</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="border-t border-stone-200 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleAdminClearLesson}
+                  className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer border border-red-200"
+                >
+                  Deixar Horário Vago
+                </button>
+                <div className="w-full sm:w-auto flex items-center gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setAdminEditingLesson(null)}
+                    className="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl shadow-sm transition-all cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Salvar Aula</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Modal: Editar Turma */}
+      {adminEditingClassInfo && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl border border-stone-200 space-y-4">
+            <div className="flex items-start justify-between border-b border-stone-200 pb-3">
+              <div>
+                <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider block">
+                  Configuração de Turma
+                </span>
+                <h3 className="text-lg font-black text-stone-900 mt-0.5">
+                  Editar {adminEditingClassInfo.shortName}
+                </h3>
+              </div>
+              <button
+                onClick={() => setAdminEditingClassInfo(null)}
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAdminSaveClassInfo} className="space-y-3.5 text-xs">
+              <div>
+                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                  Nome Completo da Turma:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={adminEditingClassInfo.name}
+                  onChange={(e) => setAdminEditingClassInfo({ ...adminEditingClassInfo, name: e.target.value })}
+                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                  Professor(a) Tutor(a) / Orientador(a):
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={adminEditingClassInfo.advisorTeacher}
+                  onChange={(e) => setAdminEditingClassInfo({ ...adminEditingClassInfo, advisorTeacher: e.target.value })}
+                  placeholder="Ex: Prof. Ricardo (Específica)"
+                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                    Sala / Bloco:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={adminEditingClassInfo.roomNumber}
+                    onChange={(e) => setAdminEditingClassInfo({ ...adminEditingClassInfo, roomNumber: e.target.value })}
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                    Turno:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={adminEditingClassInfo.shift}
+                    onChange={(e) => setAdminEditingClassInfo({ ...adminEditingClassInfo, shift: e.target.value })}
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-stone-200 pt-4 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setAdminEditingClassInfo(null)}
+                  className="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl shadow-sm transition-all cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Salvar Dados</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal for Analyzing a Bullying Report */}
       {selectedReport && (

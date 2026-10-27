@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, Lock } from 'lucide-react';
+import { ShieldAlert, Lock, Code2 } from 'lucide-react';
 
 interface FooterProps {
   onOpenBullyingReport?: () => void;
@@ -86,7 +86,13 @@ export default function Footer({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
               )}
             </div>
 
-            <p className="text-emerald-100/70 pt-2 text-xs">&copy; {new Date().getFullYear()} CETI Verônica Celestina Dias. Todos os direitos reservados.</p>
+            <div className="pt-3 border-t border-emerald-900/80 mt-2 space-y-1">
+              <p className="text-emerald-300 font-semibold text-xs flex items-center justify-center md:justify-end gap-1.5">
+                <Code2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Site escolar desenvolvido por alunos da 3ª série desenvolvimento de sistemas</span>
+              </p>
+              <p className="text-emerald-100/60 text-[11px]">&copy; {new Date().getFullYear()} CETI Verônica Celestina Dias. Todos os direitos reservados.</p>
+            </div>
           </div>
         </div>
       </div>

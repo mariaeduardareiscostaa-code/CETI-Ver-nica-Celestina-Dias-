@@ -603,8 +603,12 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
         {/* Navigation */}
         <header className="bg-emerald-950 text-white border-b border-emerald-900 py-4 px-4 sm:px-8">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-7 w-7 text-emerald-300" />
+            <div className="flex items-center gap-2.5">
+              <img 
+                src="/assets/aistudio/color_transparente_f0e67a56.png" 
+                alt="Logo CETI Verônica Celestina Dias" 
+                className="h-8 w-8 sm:h-9 sm:w-9 object-contain drop-shadow-sm brightness-110 shrink-0" 
+              />
               <span className="font-bold text-lg text-white">CETI Verônica Celestina Dias</span>
             </div>
             <button
@@ -690,9 +694,11 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
       <header className="bg-emerald-950 text-white border-b border-emerald-900 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-900 rounded-lg text-emerald-300">
-              <UserCheck className="w-5 h-5" />
-            </div>
+            <img 
+              src="/assets/aistudio/color_transparente_f0e67a56.png" 
+              alt="Logo CETI Verônica Celestina Dias" 
+              className="h-9 w-9 object-contain drop-shadow-sm brightness-110 shrink-0" 
+            />
             <div>
               <span className="font-bold text-base sm:text-lg block leading-tight">Painel da Administração</span>
               <span className="text-xs text-emerald-300/80 hidden sm:block">CETI Verônica Celestina Dias · Gestão & Acolhimento</span>

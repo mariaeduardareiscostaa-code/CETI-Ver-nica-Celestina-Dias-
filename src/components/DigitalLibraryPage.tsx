@@ -64,7 +64,23 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
   const [books, setBooks] = useState<Book[]>(() => {
     try {
       const stored = localStorage.getItem('vcd_library_books');
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (!localStorage.getItem('vcd_book04_estrela_applied')) {
+            const estrelaCover = INITIAL_BOOKS[3]?.coverImage;
+            const synced = parsed.map((b: Book, idx: number) =>
+              b.id === 'book-04' || idx === 3
+                ? { ...b, coverImage: estrelaCover }
+                : b
+            );
+            localStorage.setItem('vcd_library_books', JSON.stringify(synced));
+            localStorage.setItem('vcd_book04_estrela_applied', '1');
+            return synced;
+          }
+          return parsed;
+        }
+      }
     } catch (e) {
       console.error(e);
     }

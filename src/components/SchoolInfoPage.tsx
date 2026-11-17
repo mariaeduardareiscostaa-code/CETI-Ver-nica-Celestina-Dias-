@@ -1232,10 +1232,6 @@ export default function SchoolInfoPage({
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Laboratório de Ciências da Natureza (Biologia, Física e Química)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span>Laboratório de Informática Conectado com Internet Banda Larga</span>
                     </li>
                     <li className="flex items-center gap-2">
@@ -1245,10 +1241,6 @@ export default function SchoolInfoPage({
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span>Refeitório Climatizado para as 3 refeições diárias (lanche da manhã, almoço e lanche da tarde)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Quadra Poliesportiva para Educação Física e Campeonatos</span>
                     </li>
                   </ul>
                 </div>

@@ -17,16 +17,22 @@ import Footer from './components/Footer';
 import BullyingReportPage from './components/BullyingReportPage';
 import DigitalLibraryPage from './components/DigitalLibraryPage';
 import SchoolInfoPage from './components/SchoolInfoPage';
+import MuralDeAvisosPage from './components/MuralDeAvisosPage';
+import MuralBanner from './components/MuralBanner';
 import AdminPanel from './components/AdminPanel';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'bullying' | 'admin' | 'biblioteca' | 'escola'>(() => {
+  const [currentView, setCurrentView] = useState<'home' | 'bullying' | 'admin' | 'biblioteca' | 'escola' | 'mural'>(() => {
     if (window.location.hash === '#denuncia-bullying') return 'bullying';
-    if (window.location.hash === '#admin') return 'admin';
+    if (window.location.hash === '#admin' || window.location.hash === '#admin-mural') return 'admin';
     if (window.location.hash === '#biblioteca') return 'biblioteca';
     if (window.location.hash === '#horarios-escola' || window.location.hash === '#escola') return 'escola';
+    if (window.location.hash === '#mural-avisos') return 'mural';
     return 'home';
   });
+  const [adminInitialTab, setAdminInitialTab] = useState<'bullying' | 'mural'>(() =>
+    window.location.hash === '#admin-mural' ? 'mural' : 'bullying'
+  );
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -34,6 +40,11 @@ export default function App() {
         setCurrentView('bullying');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (window.location.hash === '#admin') {
+        setAdminInitialTab('bullying');
+        setCurrentView('admin');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (window.location.hash === '#admin-mural') {
+        setAdminInitialTab('mural');
         setCurrentView('admin');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (window.location.hash === '#biblioteca') {
@@ -41,6 +52,9 @@ export default function App() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (window.location.hash === '#horarios-escola' || window.location.hash === '#escola') {
         setCurrentView('escola');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (window.location.hash === '#mural-avisos') {
+        setCurrentView('mural');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setCurrentView('home');
@@ -69,8 +83,22 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const openNotices = () => {
+    window.location.hash = '#mural-avisos';
+    setCurrentView('mural');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const openAdminLogin = () => {
+    setAdminInitialTab('bullying');
     window.location.hash = '#admin';
+    setCurrentView('admin');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const openAdminNotices = () => {
+    setAdminInitialTab('mural');
+    window.location.hash = '#admin-mural';
     setCurrentView('admin');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -100,8 +128,19 @@ export default function App() {
     );
   }
 
+  if (currentView === 'mural') {
+    return (
+      <MuralDeAvisosPage
+        onBackToHome={backToHome}
+        onOpenLibrary={openLibrary}
+        onOpenSchoolInfo={openSchoolInfo}
+        onOpenAdminNotices={openAdminNotices}
+      />
+    );
+  }
+
   if (currentView === 'admin') {
-    return <AdminPanel onBackToHome={backToHome} />;
+    return <AdminPanel onBackToHome={backToHome} initialTab={adminInitialTab} />;
   }
 
   return (
@@ -111,6 +150,7 @@ export default function App() {
         onOpenAdminLogin={openAdminLogin}
         onOpenLibrary={openLibrary}
         onOpenSchoolInfo={openSchoolInfo}
+        onOpenNotices={openNotices}
         onBackToHome={backToHome}
       />
       <main className="flex-grow">
@@ -120,6 +160,7 @@ export default function App() {
           onOpenSchoolInfo={openSchoolInfo}
         />
         <SchoolInfoBanner onOpenSchoolInfo={openSchoolInfo} />
+        <MuralBanner onOpenNotices={openNotices} />
         <BullyingBanner onOpenBullyingReport={openBullyingReport} />
         <LibraryBanner onOpenLibrary={openLibrary} />
         <SchoolGallery />
@@ -132,6 +173,7 @@ export default function App() {
         onOpenAdminLogin={openAdminLogin}
         onOpenLibrary={openLibrary}
         onOpenSchoolInfo={openSchoolInfo}
+        onOpenNotices={openNotices}
       />
     </div>
   );

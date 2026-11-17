@@ -32,7 +32,8 @@ import {
   Upload,
   CalendarDays,
   Pencil,
-  RotateCcw
+  RotateCcw,
+  Megaphone
 } from 'lucide-react';
 import { BookReservation, Book, INITIAL_BOOKS, PRESET_BOOK_COVERS } from '../data/libraryBooks';
 import { 
@@ -44,9 +45,18 @@ import {
   COMMON_TEACHERS, 
   COMMON_ROOMS 
 } from '../data/schoolScheduleData';
+import AdminMuralTab from './AdminMuralTab';
+import {
+  getStoredAdminToken,
+  clearAdminToken,
+  loginAdminServer,
+  verifyAdminSession,
+  fetchNotices,
+} from '../services/noticesApi';
 
 interface AdminPanelProps {
   onBackToHome: () => void;
+  initialTab?: 'bullying' | 'messages' | 'stats' | 'library' | 'schedules' | 'mural';
 }
 
 interface BullyingReport {
@@ -88,15 +98,54 @@ interface ContactMessage {
   status?: string;
 }
 
-export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('vcd_admin_logged_in') === 'true';
-  });
+export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: AdminPanelProps) {
+  const [adminToken, setAdminToken] = useState<string | null>(() => getStoredAdminToken());
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => Boolean(getStoredAdminToken()));
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const [accessKey, setAccessKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState<'bullying' | 'messages' | 'stats' | 'library' | 'schedules'>('bullying');
+  const [activeTab, setActiveTab] = useState<'bullying' | 'messages' | 'stats' | 'library' | 'schedules' | 'mural'>(initialTab);
+  const [muralNoticesCount, setMuralNoticesCount] = useState<number>(0);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
+    let active = true;
+    const token = getStoredAdminToken();
+    if (!token) {
+      setIsAuthenticated(false);
+      setAdminToken(null);
+      return;
+    }
+
+    verifyAdminSession(token).then((valid) => {
+      if (!active) return;
+      if (!valid) {
+        clearAdminToken();
+        setAdminToken(null);
+        setIsAuthenticated(false);
+      } else {
+        setAdminToken(token);
+        setIsAuthenticated(true);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchNotices()
+      .then((list) => setMuralNoticesCount(list.length))
+      .catch(() => {
+        // ignore initial badge error
+      });
+  }, [isAuthenticated]);
 
   // Schedule Management in Admin
   const [adminScheduleClasses, setAdminScheduleClasses] = useState<SchoolClass[]>(() => getStoredSchoolClasses());
@@ -402,17 +451,33 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
     setTimeout(() => setLibraryFeedback(''), 3500);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
 
     const cleanKey = accessKey.trim();
+    if (!cleanKey) {
+      setLoginError('Informe a chave de acesso da administração.');
+      return;
+    }
 
-    if (cleanKey === '12345') {
+    setIsLoggingIn(true);
+    try {
+      const { token } = await loginAdminServer(cleanKey);
+      setAdminToken(token);
       setIsAuthenticated(true);
-      localStorage.setItem('vcd_admin_logged_in', 'true');
-    } else {
-      setLoginError('Chave de acesso incorreta. Por favor, verifique a chave informada.');
+      setAccessKey('');
+    } catch (err) {
+      clearAdminToken();
+      setAdminToken(null);
+      setIsAuthenticated(false);
+      setLoginError(
+        err instanceof Error
+          ? err.message
+          : 'Chave de acesso incorreta. Por favor, verifique a chave informada.'
+      );
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -518,8 +583,16 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
   };
 
   const handleLogout = () => {
+    clearAdminToken();
+    setAdminToken(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('vcd_admin_logged_in');
+  };
+
+  const handleSessionExpired = () => {
+    clearAdminToken();
+    setAdminToken(null);
+    setIsAuthenticated(false);
+    setLoginError('Sua sessão administrativa expirou. Faça login novamente para continuar.');
   };
 
   const openReportModal = (rep: BullyingReport) => {
@@ -672,9 +745,10 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
 
               <button
                 type="submit"
-                className="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold rounded-xl transition-all shadow-md active:scale-98 text-sm cursor-pointer"
+                disabled={isLoggingIn}
+                className="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold rounded-xl transition-all shadow-md active:scale-98 text-sm cursor-pointer disabled:opacity-60"
               >
-                Acessar Painel da Gestão
+                {isLoggingIn ? 'Verificando acesso...' : 'Acessar Painel da Gestão'}
               </button>
             </form>
           </div>
@@ -729,7 +803,17 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full space-y-6">
         
         {/* KPI Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider block">Mural de Avisos</span>
+              <span className="text-2xl font-bold text-emerald-950 mt-1 block">{muralNoticesCount}</span>
+            </div>
+            <div className="p-3 bg-emerald-50 text-emerald-800 rounded-xl">
+              <Megaphone className="w-6 h-6" />
+            </div>
+          </div>
+
           <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider block">Denúncias Bullying</span>
@@ -787,6 +871,18 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
 
         {/* Tab Selector */}
         <div className="flex border-b border-stone-200 bg-white px-4 pt-2 rounded-t-2xl shadow-xs overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setActiveTab('mural')}
+            className={`pb-3 px-4 font-semibold text-sm border-b-2 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer ${
+              activeTab === 'mural'
+                ? 'border-emerald-700 text-emerald-900'
+                : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            <Megaphone className="w-4 h-4" />
+            <span>Mural de Avisos ({muralNoticesCount})</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('bullying')}
             className={`pb-3 px-4 font-semibold text-sm border-b-2 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer ${
@@ -848,7 +944,15 @@ export default function AdminPanel({ onBackToHome }: AdminPanelProps) {
           </button>
         </div>
 
-        
+        {/* Tab 0: Mural de Avisos Management */}
+        {activeTab === 'mural' && (
+          <AdminMuralTab
+            adminToken={adminToken}
+            onSessionExpired={handleSessionExpired}
+            onNoticesCountChange={setMuralNoticesCount}
+          />
+        )}
+
         {/* Tab 5: Grade de Horários Management */}
         {activeTab === 'schedules' && (
           <div className="bg-white rounded-b-2xl p-6 border border-stone-200 border-t-0 space-y-6">

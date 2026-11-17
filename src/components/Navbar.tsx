@@ -10,7 +10,8 @@ import {
   Users, 
   Building2, 
   Info,
-  ChevronRight
+  ChevronRight,
+  Megaphone
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -18,6 +19,7 @@ interface NavbarProps {
   onOpenAdminLogin?: () => void;
   onOpenLibrary?: () => void;
   onOpenSchoolInfo?: () => void;
+  onOpenNotices?: () => void;
   onBackToHome?: () => void;
 }
 
@@ -26,6 +28,7 @@ export default function Navbar({
   onOpenAdminLogin, 
   onOpenLibrary, 
   onOpenSchoolInfo,
+  onOpenNotices,
   onBackToHome 
 }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -169,7 +172,17 @@ export default function Navbar({
               <span>Horários</span>
             </button>
 
-            {/* 4. Biblioteca */}
+            {/* 4. Mural de Avisos */}
+            <button
+              onClick={onOpenNotices}
+              className="hover:bg-emerald-800 hover:text-emerald-200 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 text-emerald-50"
+              title="Acessar Mural de Avisos, comunicados e eventos do CETI"
+            >
+              <Megaphone className="w-4 h-4 text-emerald-300" />
+              <span>Mural de Avisos</span>
+            </button>
+
+            {/* 5. Biblioteca */}
             <button
               onClick={onOpenLibrary}
               className="hover:bg-emerald-800 hover:text-emerald-200 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 text-emerald-50"
@@ -179,7 +192,7 @@ export default function Navbar({
               <span>Biblioteca</span>
             </button>
 
-            {/* 5. Contato */}
+            {/* 6. Contato */}
             <a
               href="#contato"
               className="hover:bg-emerald-800 hover:text-emerald-200 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer text-emerald-50"
@@ -298,6 +311,21 @@ export default function Navbar({
               <span className="flex items-center gap-2">
                 <CalendarDays className="w-4 h-4 text-emerald-300" />
                 <span>Horários</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-emerald-500" />
+            </button>
+
+            {/* Mural de Avisos */}
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                if (onOpenNotices) onOpenNotices();
+              }}
+              className="w-full flex items-center justify-between py-2.5 px-3 rounded-xl text-base font-semibold text-emerald-100 hover:text-white hover:bg-emerald-900 transition-colors text-left cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <Megaphone className="w-4 h-4 text-emerald-300" />
+                <span>Mural de Avisos</span>
               </span>
               <ChevronRight className="w-4 h-4 text-emerald-500" />
             </button>

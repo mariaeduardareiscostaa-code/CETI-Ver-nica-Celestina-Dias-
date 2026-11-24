@@ -6,10 +6,9 @@ interface FooterProps {
   onOpenAdminLogin?: () => void;
   onOpenLibrary?: () => void;
   onOpenSchoolInfo?: () => void;
-  onOpenNotices?: () => void;
 }
 
-export default function Footer({ onOpenBullyingReport, onOpenAdminLogin, onOpenLibrary, onOpenSchoolInfo, onOpenNotices }: FooterProps) {
+export default function Footer({ onOpenBullyingReport, onOpenAdminLogin, onOpenLibrary, onOpenSchoolInfo }: FooterProps) {
   return (
     <footer className="bg-emerald-950 text-emerald-200/90 py-12 border-t border-emerald-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -45,14 +44,6 @@ export default function Footer({ onOpenBullyingReport, onOpenAdminLogin, onOpenL
                   <span>·</span>
                   <button onClick={onOpenSchoolInfo} className="hover:text-white underline underline-offset-2 cursor-pointer text-emerald-300">
                     Horários
-                  </button>
-                </>
-              )}
-              {onOpenNotices && (
-                <>
-                  <span>·</span>
-                  <button onClick={onOpenNotices} className="hover:text-white underline underline-offset-2 cursor-pointer text-emerald-300">
-                    Mural de Avisos
                   </button>
                 </>
               )}

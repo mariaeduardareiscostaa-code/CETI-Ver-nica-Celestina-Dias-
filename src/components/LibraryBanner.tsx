@@ -1,69 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, BookmarkCheck, ArrowRight, Sparkles, GraduationCap, Clock, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Book, INITIAL_BOOKS } from '../data/libraryBooks';
+import { Book } from '../data/libraryBooks';
+import {
+  fetchLibraryBooks,
+  getCachedLibraryBooks,
+  LIBRARY_UPDATED_EVENT,
+} from '../services/libraryApi';
 
 interface LibraryBannerProps {
   onOpenLibrary: () => void;
 }
 
 export default function LibraryBanner({ onOpenLibrary }: LibraryBannerProps) {
-  const [books, setBooks] = useState<Book[]>(() => {
-    try {
-      const stored = localStorage.getItem('vcd_library_books');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasArtificialSvg = parsed.some(
-            (b: Book) => typeof b.coverImage === 'string' && b.coverImage.startsWith('data:image/svg+xml')
-          );
-          if (hasArtificialSvg || !localStorage.getItem('vcd_book04_estrela_applied')) {
-            const estrelaCover = INITIAL_BOOKS[3]?.coverImage;
-            const cleaned = parsed.map((b: Book, idx: number) => {
-              if (b.id === 'book-04' || idx === 3) {
-                return { ...b, coverImage: estrelaCover };
-              }
-              if (typeof b.coverImage === 'string' && b.coverImage.startsWith('data:image/svg+xml')) {
-                return { ...b, coverImage: undefined };
-              }
-              return b;
-            });
-            localStorage.setItem('vcd_library_books', JSON.stringify(cleaned));
-            localStorage.setItem('vcd_book04_estrela_applied', '1');
-            return cleaned;
-          }
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return INITIAL_BOOKS;
-  });
-
+  const [books, setBooks] = useState<Book[]>(() => getCachedLibraryBooks());
+  const [failedCoverKeys, setFailedCoverKeys] = useState<Record<string, boolean>>({});
   const [page, setPage] = useState(0);
   const pageSize = 4;
 
-  // Listen to changes when books are added, edited, or covers are changed
+  // Fetch authoritative books list from backend and listen to updates
   useEffect(() => {
-    const handleStorageUpdate = () => {
-      try {
-        const stored = localStorage.getItem('vcd_library_books');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setBooks(parsed);
+    let active = true;
+
+    const refreshFromServer = () => {
+      fetchLibraryBooks()
+        .then((list) => {
+          if (active && Array.isArray(list) && list.length > 0) {
+            setBooks(list);
           }
-        }
-      } catch (e) {
-        console.error(e);
-      }
+        })
+        .catch(() => {
+          // keep cached books on transient network errors
+        });
     };
 
-    window.addEventListener('storage', handleStorageUpdate);
-    window.addEventListener('focus', handleStorageUpdate);
+    refreshFromServer();
+
+    window.addEventListener(LIBRARY_UPDATED_EVENT, refreshFromServer);
+    window.addEventListener('storage', refreshFromServer);
+    window.addEventListener('focus', refreshFromServer);
     return () => {
-      window.removeEventListener('storage', handleStorageUpdate);
-      window.removeEventListener('focus', handleStorageUpdate);
+      active = false;
+      window.removeEventListener(LIBRARY_UPDATED_EVENT, refreshFromServer);
+      window.removeEventListener('storage', refreshFromServer);
+      window.removeEventListener('focus', refreshFromServer);
     };
   }, []);
 
@@ -186,7 +165,10 @@ export default function LibraryBanner({ onOpenLibrary }: LibraryBannerProps) {
 
               {/* Grid of Actual Books with Respective Covers */}
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                {currentBooks.map((book) => (
+                {currentBooks.map((book) => {
+                  const coverKey = `${book.id}:${book.coverImage || ''}`;
+                  const showRealCover = Boolean(book.coverImage && !failedCoverKeys[coverKey]);
+                  return (
                   <div
                     key={book.id}
                     onClick={onOpenLibrary}
@@ -195,13 +177,13 @@ export default function LibraryBanner({ onOpenLibrary }: LibraryBannerProps) {
                   >
                     {/* Book Cover Image Container */}
                     <div className="relative w-full h-40 sm:h-48 rounded-xl overflow-hidden bg-emerald-950 mb-2.5 shadow-md border border-white/10 flex items-center justify-center">
-                      {book.coverImage ? (
+                      {showRealCover ? (
                         <img
                           src={book.coverImage}
                           alt={`Capa do livro ${book.title}`}
                           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
+                          onError={() => {
+                            setFailedCoverKeys((prev) => ({ ...prev, [coverKey]: true }));
                           }}
                         />
                       ) : (
@@ -242,7 +224,8 @@ export default function LibraryBanner({ onOpenLibrary }: LibraryBannerProps) {
                       </p>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Bottom Catalog Summary */}

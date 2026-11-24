@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Lock, 
   UserCheck, 
@@ -32,10 +32,9 @@ import {
   Upload,
   CalendarDays,
   Pencil,
-  RotateCcw,
-  Megaphone
+  RotateCcw
 } from 'lucide-react';
-import { BookReservation, Book, INITIAL_BOOKS, PRESET_BOOK_COVERS } from '../data/libraryBooks';
+import { BookReservation, Book } from '../data/libraryBooks';
 import { 
   SchoolClass, 
   ClassScheduleItem, 
@@ -45,18 +44,33 @@ import {
   COMMON_TEACHERS, 
   COMMON_ROOMS 
 } from '../data/schoolScheduleData';
-import AdminMuralTab from './AdminMuralTab';
 import {
   getStoredAdminToken,
   clearAdminToken,
   loginAdminServer,
   verifyAdminSession,
-  fetchNotices,
 } from '../services/noticesApi';
+import {
+  PreparedCoverUpload,
+  prepareCoverImageFile,
+  fetchLibraryBooks,
+  getCachedLibraryBooks,
+  saveCachedLibraryBooks,
+  createBookApi,
+  updateBookCoverApi,
+  deleteBookApi,
+  syncLocalBooksToServer,
+  fetchBookReservations,
+  getCachedReservations,
+  saveCachedReservations,
+  updateBookReservationStatusApi,
+  dispatchLibraryUpdated,
+  LIBRARY_UPDATED_EVENT,
+} from '../services/libraryApi';
 
 interface AdminPanelProps {
   onBackToHome: () => void;
-  initialTab?: 'bullying' | 'messages' | 'stats' | 'library' | 'schedules' | 'mural';
+  initialTab?: 'bullying' | 'messages' | 'stats' | 'library' | 'schedules';
 }
 
 interface BullyingReport {
@@ -106,8 +120,7 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
   const [accessKey, setAccessKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState<'bullying' | 'messages' | 'stats' | 'library' | 'schedules' | 'mural'>(initialTab);
-  const [muralNoticesCount, setMuralNoticesCount] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<'bullying' | 'messages' | 'stats' | 'library' | 'schedules'>(initialTab);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -138,14 +151,6 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
       active = false;
     };
   }, []);
-
-  useEffect(() => {
-    fetchNotices()
-      .then((list) => setMuralNoticesCount(list.length))
-      .catch(() => {
-        // ignore initial badge error
-      });
-  }, [isAuthenticated]);
 
   // Schedule Management in Admin
   const [adminScheduleClasses, setAdminScheduleClasses] = useState<SchoolClass[]>(() => getStoredSchoolClasses());
@@ -185,12 +190,13 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
 
   // Digital Library Management state
-  const [libraryReservations, setLibraryReservations] = useState<BookReservation[]>([]);
-  const [libraryBooks, setLibraryBooks] = useState<Book[]>([]);
+  const [libraryReservations, setLibraryReservations] = useState<BookReservation[]>(() => getCachedReservations());
+  const [libraryBooks, setLibraryBooks] = useState<Book[]>(() => getCachedLibraryBooks());
   const [librarySearch, setLibrarySearch] = useState('');
   const [libraryFilter, setLibraryFilter] = useState<string>('todos');
   const [libraryFeedback, setLibraryFeedback] = useState('');
   const [librarySubTab, setLibrarySubTab] = useState<'reservations' | 'catalog'>('reservations');
+  const [failedAdminCoverKeys, setFailedAdminCoverKeys] = useState<Record<string, boolean>>({});
 
   // Book management in admin
   const [showAdminAddBookModal, setShowAdminAddBookModal] = useState(false);
@@ -200,13 +206,49 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
   const [adminBookCopies, setAdminBookCopies] = useState(5);
   const [adminBookShelf, setAdminBookShelf] = useState('Estante 01 · Prateleira A');
   const [adminBookCover, setAdminBookCover] = useState('');
+  const [pendingAdminBookCoverUpload, setPendingAdminBookCoverUpload] = useState<PreparedCoverUpload | null>(null);
   const [adminBookForCover, setAdminBookForCover] = useState<Book | null>(null);
   const [adminCoverInput, setAdminCoverInput] = useState('');
+  const [pendingAdminQuickCoverUpload, setPendingAdminQuickCoverUpload] = useState<PreparedCoverUpload | null>(null);
+  const [isSavingAdminBook, setIsSavingAdminBook] = useState(false);
+  const [isSavingAdminCover, setIsSavingAdminCover] = useState(false);
+  const [adminLibraryError, setAdminLibraryError] = useState('');
+  const adminAddBookFileRef = useRef<HTMLInputElement>(null);
+  const adminQuickCoverFileRef = useRef<HTMLInputElement>(null);
 
-  // Initial load and seed
+  // Initial load and cross-component library sync
   useEffect(() => {
     loadData();
+    const handleLibrarySync = () => {
+      loadLibraryFromServer();
+    };
+    window.addEventListener(LIBRARY_UPDATED_EVENT, handleLibrarySync);
+    return () => {
+      window.removeEventListener(LIBRARY_UPDATED_EVENT, handleLibrarySync);
+    };
   }, [isAuthenticated]);
+
+  const loadLibraryFromServer = async () => {
+    const [serverBooks, serverReservations] = await Promise.all([
+      fetchLibraryBooks(),
+      fetchBookReservations(),
+    ]);
+    if (serverBooks.length > 0) {
+      setLibraryBooks(serverBooks);
+      saveCachedLibraryBooks(serverBooks);
+    }
+    setLibraryReservations(serverReservations);
+    saveCachedReservations(serverReservations);
+
+    const token = adminToken || getStoredAdminToken();
+    if (isAuthenticated && token) {
+      const migrated = await syncLocalBooksToServer(token);
+      if (migrated && migrated.length > 0) {
+        setLibraryBooks(migrated);
+        saveCachedLibraryBooks(migrated);
+      }
+    }
+  };
 
   const loadData = () => {
     // 1. Bullying reports with identified victims
@@ -320,135 +362,180 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
       // ignore
     }
 
-    // 3. Digital Library
+    // 3. Digital Library (authoritative server storage + local migration)
+    void loadLibraryFromServer();
+  };
+
+  const handleAdminCoverFileSelect = async (
+    file: File,
+    onReady: (upload: PreparedCoverUpload) => void
+  ) => {
+    setAdminLibraryError('');
     try {
-      const storedRes = localStorage.getItem('vcd_library_reservations');
-      if (storedRes) {
-        setLibraryReservations(JSON.parse(storedRes));
-      } else {
-        const sampleRes: BookReservation[] = [
-          {
-            id: 'CETI-LIB-2026-4821',
-            bookId: 'book-05',
-            bookTitle: 'Redação Nota 1000: Técnicas e Repertórios para o ENEM',
-            bookAuthor: 'Profª. Clarice Mendonça & Equipe Pedagógica',
-            bookCategory: 'ENEM & Vestibulares',
-            shelfLocation: 'Estante 03 · Prateleira A (Bancada Preparatória ENEM)',
-            studentName: 'Ana Clara Fernandes',
-            studentMatricula: '2024-VCD-1089',
-            studentGrade: '3º Ano A - Ensino Médio Integral',
-            studentContact: '(89) 99422-1100',
-            reservationDate: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
-            pickupDeadline: new Date(Date.now() + 1000 * 60 * 60 * 30).toISOString(),
-            returnDeadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString(),
-            status: 'Pendente para Retirada',
-            notes: 'Preparação para o simulado do ENEM deste mês.'
-          }
-        ];
-        localStorage.setItem('vcd_library_reservations', JSON.stringify(sampleRes));
-        setLibraryReservations(sampleRes);
-      }
-
-      const storedBooks = localStorage.getItem('vcd_library_books');
-      if (storedBooks) {
-        setLibraryBooks(JSON.parse(storedBooks));
-      } else {
-        localStorage.setItem('vcd_library_books', JSON.stringify(INITIAL_BOOKS));
-        setLibraryBooks(INITIAL_BOOKS);
-      }
-    } catch {
-      // ignore
+      const prepared = await prepareCoverImageFile(file);
+      onReady(prepared);
+    } catch (err) {
+      setAdminLibraryError(err instanceof Error ? err.message : 'Erro ao processar a imagem selecionada.');
     }
   };
 
-  const handleUpdateReservationStatus = (reservationId: string, newStatus: BookReservation['status']) => {
-    const targetReservation = libraryReservations.find(r => r.id === reservationId);
-    if (!targetReservation) return;
-
-    const oldStatus = targetReservation.status;
-    const updated = libraryReservations.map((r) => {
-      if (r.id === reservationId) {
-        return { ...r, status: newStatus };
-      }
-      return r;
-    });
-
-    // If changing to 'Devolvido' or 'Cancelado' from 'Pendente para Retirada' or 'Retirado / Emprestado', return book copy
-    if ((newStatus === 'Devolvido' || newStatus === 'Cancelado') && oldStatus !== 'Devolvido' && oldStatus !== 'Cancelado') {
-      setLibraryBooks((prevBooks) => {
-        const newBooks = prevBooks.map((b) =>
-          b.id === targetReservation.bookId ? { ...b, availableCopies: Math.min(b.totalCopies, b.availableCopies + 1) } : b
-        );
-        localStorage.setItem('vcd_library_books', JSON.stringify(newBooks));
-        return newBooks;
-      });
+  const handleUpdateReservationStatus = async (reservationId: string, newStatus: BookReservation['status']) => {
+    const token = adminToken || getStoredAdminToken();
+    if (!token) {
+      handleSessionExpired();
+      return;
     }
 
-    setLibraryReservations(updated);
-    localStorage.setItem('vcd_library_reservations', JSON.stringify(updated));
-    setLibraryFeedback(`Status da reserva ${reservationId} atualizado para: "${newStatus}"`);
-    setTimeout(() => setLibraryFeedback(''), 3500);
+    try {
+      await updateBookReservationStatusApi(token, reservationId, newStatus);
+      await loadLibraryFromServer();
+      dispatchLibraryUpdated();
+      setLibraryFeedback(`Status da reserva ${reservationId} atualizado para: "${newStatus}"`);
+      setTimeout(() => setLibraryFeedback(''), 3500);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        handleSessionExpired();
+        return;
+      }
+      setLibraryFeedback(err instanceof Error ? err.message : 'Erro ao atualizar status da reserva.');
+      setTimeout(() => setLibraryFeedback(''), 4000);
+    }
   };
 
-  const handleAddBookAdmin = (e: React.FormEvent) => {
+  const handleAddBookAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminBookTitle.trim() || !adminBookAuthor.trim()) return;
 
-    const newBook: Book = {
-      id: `book-${Date.now().toString().slice(-6)}`,
-      title: adminBookTitle.trim(),
-      author: adminBookAuthor.trim(),
-      category: adminBookCategory as Book['category'],
-      isbn: `978-85-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(10 + Math.random() * 90)}-0`,
-      year: new Date().getFullYear(),
-      pages: 180,
-      publisher: 'Acervo SEDUC-PI / CETI',
-      synopsis: 'Obra inserida pela gestão escolar para estudo, pesquisa e desenvolvimento literário.',
-      shelfLocation: adminBookShelf.trim() || 'Estante 01 · Geral',
-      totalCopies: Number(adminBookCopies) || 5,
-      availableCopies: Number(adminBookCopies) || 5,
-      coverGradient: 'from-emerald-700 to-emerald-950',
-      coverImage: adminBookCover.trim() || undefined,
-      badge: 'Acervo Escolar',
-      recommendedGrade: 'Ensino Médio Integral',
-      rating: 5.0,
-      tags: ['Acervo Escolar', 'SEDUC']
-    };
+    const token = adminToken || getStoredAdminToken();
+    if (!token) {
+      handleSessionExpired();
+      return;
+    }
 
-    const updated = [newBook, ...libraryBooks];
-    setLibraryBooks(updated);
-    localStorage.setItem('vcd_library_books', JSON.stringify(updated));
-    setShowAdminAddBookModal(false);
-    setAdminBookTitle('');
-    setAdminBookAuthor('');
-    setAdminBookCover('');
-    setLibraryFeedback(`Livro "${newBook.title}" adicionado ao acervo com sucesso!`);
-    setTimeout(() => setLibraryFeedback(''), 3500);
-  };
+    setIsSavingAdminBook(true);
+    setAdminLibraryError('');
+    try {
+      const newBook = await createBookApi(token, {
+        title: adminBookTitle.trim(),
+        author: adminBookAuthor.trim(),
+        category: adminBookCategory as Book['category'],
+        isbn: `978-85-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(10 + Math.random() * 90)}-0`,
+        year: new Date().getFullYear(),
+        pages: 180,
+        publisher: 'Acervo SEDUC-PI / CETI',
+        synopsis: 'Obra inserida pela gestão escolar para estudo, pesquisa e desenvolvimento literário.',
+        shelfLocation: adminBookShelf.trim() || 'Estante 01 · Geral',
+        totalCopies: Number(adminBookCopies) || 5,
+        availableCopies: Number(adminBookCopies) || 5,
+        coverGradient: 'from-emerald-700 to-emerald-950',
+        coverImage: pendingAdminBookCoverUpload ? undefined : adminBookCover.trim() || undefined,
+        coverUpload: pendingAdminBookCoverUpload,
+        badge: 'Acervo Escolar',
+        recommendedGrade: 'Ensino Médio Integral',
+        rating: 5.0,
+        tags: ['Acervo Escolar', 'SEDUC'],
+      });
 
-  const handleDeleteBookAdmin = (book: Book) => {
-    if (window.confirm(`Deseja realmente remover o livro "${book.title}" do acervo escolar?`)) {
-      const updated = libraryBooks.filter(b => b.id !== book.id);
+      const updated = [newBook, ...libraryBooks];
       setLibraryBooks(updated);
-      localStorage.setItem('vcd_library_books', JSON.stringify(updated));
-      setLibraryFeedback(`Livro "${book.title}" removido do catálogo com sucesso.`);
+      saveCachedLibraryBooks(updated);
+      dispatchLibraryUpdated();
+      setShowAdminAddBookModal(false);
+      setAdminBookTitle('');
+      setAdminBookAuthor('');
+      setAdminBookCover('');
+      setPendingAdminBookCoverUpload(null);
+      setAdminLibraryError('');
+      setLibraryFeedback(`Livro "${newBook.title}" adicionado ao acervo com sucesso!`);
       setTimeout(() => setLibraryFeedback(''), 3500);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        handleSessionExpired();
+        return;
+      }
+      setAdminLibraryError(err instanceof Error ? err.message : 'Erro ao salvar livro no servidor.');
+    } finally {
+      setIsSavingAdminBook(false);
     }
   };
 
-  const handleSaveCoverAdmin = (e: React.FormEvent) => {
+  const handleDeleteBookAdmin = async (book: Book) => {
+    if (!window.confirm(`Deseja realmente remover o livro "${book.title}" do acervo escolar?`)) {
+      return;
+    }
+
+    const token = adminToken || getStoredAdminToken();
+    if (!token) {
+      handleSessionExpired();
+      return;
+    }
+
+    try {
+      await deleteBookApi(token, book.id);
+      const updated = libraryBooks.filter((b) => b.id !== book.id);
+      setLibraryBooks(updated);
+      saveCachedLibraryBooks(updated);
+      dispatchLibraryUpdated();
+      setLibraryFeedback(`Livro "${book.title}" removido do catálogo com sucesso.`);
+      setTimeout(() => setLibraryFeedback(''), 3500);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        handleSessionExpired();
+        return;
+      }
+      setLibraryFeedback(err instanceof Error ? err.message : 'Erro ao remover livro.');
+      setTimeout(() => setLibraryFeedback(''), 4000);
+    }
+  };
+
+  const handleSaveCoverAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminBookForCover) return;
-    const newCover = adminCoverInput.trim();
-    const updated = libraryBooks.map(b => 
-      b.id === adminBookForCover.id ? { ...b, coverImage: newCover || undefined } : b
-    );
-    setLibraryBooks(updated);
-    localStorage.setItem('vcd_library_books', JSON.stringify(updated));
-    setAdminBookForCover(null);
-    setAdminCoverInput('');
-    setLibraryFeedback(`Capa do livro "${adminBookForCover.title}" atualizada com sucesso!`);
-    setTimeout(() => setLibraryFeedback(''), 3500);
+
+    const token = adminToken || getStoredAdminToken();
+    if (!token) {
+      handleSessionExpired();
+      return;
+    }
+
+    const newCoverUrl = adminCoverInput.trim();
+    if (!pendingAdminQuickCoverUpload && !newCoverUrl) {
+      setAdminLibraryError('Informe a URL da capa ou envie uma imagem do seu dispositivo.');
+      return;
+    }
+
+    setIsSavingAdminCover(true);
+    setAdminLibraryError('');
+    try {
+      const updatedBook = await updateBookCoverApi(token, adminBookForCover.id, {
+        coverImage: pendingAdminQuickCoverUpload ? undefined : newCoverUrl,
+        coverUpload: pendingAdminQuickCoverUpload,
+      });
+
+      const updated = libraryBooks.map((b) => (b.id === updatedBook.id ? updatedBook : b));
+      setLibraryBooks(updated);
+      saveCachedLibraryBooks(updated);
+      setFailedAdminCoverKeys((prev) => {
+        const next = { ...prev };
+        delete next[updatedBook.id];
+        return next;
+      });
+      dispatchLibraryUpdated();
+      setAdminBookForCover(null);
+      setAdminCoverInput('');
+      setPendingAdminQuickCoverUpload(null);
+      setAdminLibraryError('');
+      setLibraryFeedback(`Capa do livro "${adminBookForCover.title}" atualizada com sucesso!`);
+      setTimeout(() => setLibraryFeedback(''), 3500);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        handleSessionExpired();
+        return;
+      }
+      setAdminLibraryError(err instanceof Error ? err.message : 'Erro ao atualizar a capa no servidor.');
+    } finally {
+      setIsSavingAdminCover(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -467,6 +554,12 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
       setAdminToken(token);
       setIsAuthenticated(true);
       setAccessKey('');
+      const migrated = await syncLocalBooksToServer(token);
+      if (migrated && migrated.length > 0) {
+        setLibraryBooks(migrated);
+        saveCachedLibraryBooks(migrated);
+        dispatchLibraryUpdated();
+      }
     } catch (err) {
       clearAdminToken();
       setAdminToken(null);
@@ -803,17 +896,7 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full space-y-6">
         
         {/* KPI Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider block">Mural de Avisos</span>
-              <span className="text-2xl font-bold text-emerald-950 mt-1 block">{muralNoticesCount}</span>
-            </div>
-            <div className="p-3 bg-emerald-50 text-emerald-800 rounded-xl">
-              <Megaphone className="w-6 h-6" />
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider block">Denúncias Bullying</span>
@@ -871,18 +954,6 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
 
         {/* Tab Selector */}
         <div className="flex border-b border-stone-200 bg-white px-4 pt-2 rounded-t-2xl shadow-xs overflow-x-auto no-scrollbar">
-          <button
-            onClick={() => setActiveTab('mural')}
-            className={`pb-3 px-4 font-semibold text-sm border-b-2 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer ${
-              activeTab === 'mural'
-                ? 'border-emerald-700 text-emerald-900'
-                : 'border-transparent text-stone-500 hover:text-stone-800'
-            }`}
-          >
-            <Megaphone className="w-4 h-4" />
-            <span>Mural de Avisos ({muralNoticesCount})</span>
-          </button>
-
           <button
             onClick={() => setActiveTab('bullying')}
             className={`pb-3 px-4 font-semibold text-sm border-b-2 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer ${
@@ -943,15 +1014,6 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
             <span>Indicadores</span>
           </button>
         </div>
-
-        {/* Tab 0: Mural de Avisos Management */}
-        {activeTab === 'mural' && (
-          <AdminMuralTab
-            adminToken={adminToken}
-            onSessionExpired={handleSessionExpired}
-            onNoticesCountChange={setMuralNoticesCount}
-          />
-        )}
 
         {/* Tab 5: Grade de Horários Management */}
         {activeTab === 'schedules' && (
@@ -1608,10 +1670,11 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                       {libraryBooks.map((b) => (
                         <tr key={b.id} className="hover:bg-stone-50/80 transition-colors">
                           <td className="py-2.5 px-3">
-                            {b.coverImage ? (
+                            {b.coverImage && !failedAdminCoverKeys[b.id] ? (
                               <img
                                 src={b.coverImage}
                                 alt={b.title}
+                                onError={() => setFailedAdminCoverKeys((prev) => ({ ...prev, [b.id]: true }))}
                                 className="w-9 h-12 object-cover rounded shadow-xs border border-stone-200"
                               />
                             ) : (
@@ -1641,6 +1704,8 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                                 onClick={() => {
                                   setAdminBookForCover(b);
                                   setAdminCoverInput(b.coverImage || '');
+                                  setPendingAdminQuickCoverUpload(null);
+                                  setAdminLibraryError('');
                                 }}
                                 className="px-2 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs flex items-center gap-1 cursor-pointer"
                                 title="Alterar ou adicionar capa"
@@ -1675,12 +1740,23 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
               <div className="flex items-center justify-between border-b border-stone-200 pb-3">
                 <h3 className="font-bold text-emerald-950 text-lg">Adicionar Livro ao Catálogo</h3>
                 <button
-                  onClick={() => setShowAdminAddBookModal(false)}
+                  onClick={() => {
+                    setShowAdminAddBookModal(false);
+                    setPendingAdminBookCoverUpload(null);
+                    setAdminLibraryError('');
+                  }}
                   className="p-1 text-stone-400 hover:text-stone-700"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
+
+              {adminLibraryError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                  <span>{adminLibraryError}</span>
+                </div>
+              )}
 
               <form onSubmit={handleAddBookAdmin} className="space-y-3 text-xs">
                 <div>
@@ -1748,30 +1824,85 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                   />
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Link (URL) da Capa do Livro</label>
-                  <input
-                    type="url"
-                    value={adminBookCover}
-                    onChange={(e) => setAdminBookCover(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600"
-                  />
+                <div className="space-y-2 p-3 rounded-xl bg-stone-50 border border-stone-200">
+                  <label className="block font-semibold text-stone-700">Capa do Livro (Upload ou Link)</label>
+
+                  {(pendingAdminBookCoverUpload?.previewDataUrl || adminBookCover) && (
+                    <div className="flex items-center gap-3 pb-1">
+                      <img
+                        src={pendingAdminBookCoverUpload?.previewDataUrl || adminBookCover}
+                        alt="Prévia da capa"
+                        className="w-12 h-16 object-cover rounded-lg border border-stone-200 shadow-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingAdminBookCoverUpload(null);
+                          setAdminBookCover('');
+                        }}
+                        className="text-red-600 hover:underline text-xs font-semibold cursor-pointer"
+                      >
+                        Remover capa selecionada
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      ref={adminAddBookFileRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleAdminCoverFileSelect(file, (upload) => {
+                            setPendingAdminBookCoverUpload(upload);
+                            setAdminBookCover('');
+                          });
+                        }
+                        e.target.value = '';
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => adminAddBookFileRef.current?.click()}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-emerald-50 border border-stone-300 text-stone-700 font-semibold cursor-pointer shrink-0"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Enviar Imagem</span>
+                    </button>
+                    <input
+                      type="url"
+                      value={adminBookCover}
+                      onChange={(e) => {
+                        setAdminBookCover(e.target.value);
+                        setPendingAdminBookCoverUpload(null);
+                      }}
+                      placeholder="Ou cole o link (https://...)"
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 bg-white"
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-2 flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowAdminAddBookModal(false)}
-                    className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold"
+                    onClick={() => {
+                      setShowAdminAddBookModal(false);
+                      setPendingAdminBookCoverUpload(null);
+                      setAdminLibraryError('');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold cursor-pointer"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold"
+                    disabled={isSavingAdminBook}
+                    className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold cursor-pointer disabled:opacity-60"
                   >
-                    Salvar Livro
+                    {isSavingAdminBook ? 'Salvando...' : 'Salvar Livro'}
                   </button>
                 </div>
               </form>
@@ -1786,22 +1917,33 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
               <div className="flex items-center justify-between border-b border-stone-200 pb-3">
                 <h3 className="font-bold text-emerald-950 text-base">Adicionar / Alterar Capa</h3>
                 <button
-                  onClick={() => setAdminBookForCover(null)}
+                  onClick={() => {
+                    setAdminBookForCover(null);
+                    setPendingAdminQuickCoverUpload(null);
+                    setAdminLibraryError('');
+                  }}
                   className="p-1 text-stone-400 hover:text-stone-700"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
+              {adminLibraryError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                  <span>{adminLibraryError}</span>
+                </div>
+              )}
+
               <form onSubmit={handleSaveCoverAdmin} className="space-y-3 text-xs">
                 <p className="text-stone-600">
                   Livro: <strong className="text-emerald-950">{adminBookForCover.title}</strong>
                 </p>
 
-                {adminCoverInput && (
+                {(pendingAdminQuickCoverUpload?.previewDataUrl || adminCoverInput) && (
                   <div className="flex justify-center py-2">
                     <img
-                      src={adminCoverInput}
+                      src={pendingAdminQuickCoverUpload?.previewDataUrl || adminCoverInput}
                       alt="Prévia"
                       className="w-24 h-36 object-cover rounded-xl shadow border border-stone-200"
                     />
@@ -1809,12 +1951,43 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                 )}
 
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">URL da Imagem da Capa</label>
+                  <label className="block font-semibold text-stone-700 mb-1">Enviar Foto do Computador / Celular</label>
+                  <input
+                    ref={adminQuickCoverFileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleAdminCoverFileSelect(file, (upload) => {
+                          setPendingAdminQuickCoverUpload(upload);
+                          setAdminCoverInput('');
+                        });
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => adminQuickCoverFileRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-stone-50 hover:bg-emerald-50 border border-dashed border-stone-300 text-stone-700 font-semibold cursor-pointer"
+                  >
+                    <Upload className="w-4 h-4 text-emerald-700" />
+                    <span>{pendingAdminQuickCoverUpload ? `Selecionada: ${pendingAdminQuickCoverUpload.fileName}` : 'Escolher Imagem do Dispositivo'}</span>
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Ou informe a URL da Imagem da Capa</label>
                   <input
                     type="url"
-                    required
+                    required={!pendingAdminQuickCoverUpload}
                     value={adminCoverInput}
-                    onChange={(e) => setAdminCoverInput(e.target.value)}
+                    onChange={(e) => {
+                      setAdminCoverInput(e.target.value);
+                      setPendingAdminQuickCoverUpload(null);
+                    }}
                     placeholder="https://..."
                     className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-600 text-xs"
                   />
@@ -1823,16 +1996,21 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                 <div className="pt-2 flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => setAdminBookForCover(null)}
-                    className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold"
+                    onClick={() => {
+                      setAdminBookForCover(null);
+                      setPendingAdminQuickCoverUpload(null);
+                      setAdminLibraryError('');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold cursor-pointer"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold"
+                    disabled={isSavingAdminCover}
+                    className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold cursor-pointer disabled:opacity-60"
                   >
-                    Atualizar Capa
+                    {isSavingAdminCover ? 'Salvando...' : 'Atualizar Capa'}
                   </button>
                 </div>
               </form>

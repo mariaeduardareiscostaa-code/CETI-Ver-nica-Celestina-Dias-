@@ -40,7 +40,33 @@ import {
   Eye,
   Sliders
 } from 'lucide-react';
-import { Book, BookReservation, INITIAL_BOOKS, PRESET_BOOK_COVERS, PresetCover } from '../data/libraryBooks';
+import { Book, BookReservation, PRESET_BOOK_COVERS } from '../data/libraryBooks';
+import {
+  getStoredAdminToken,
+  clearAdminToken,
+  loginAdminServer,
+  verifyAdminSession,
+} from '../services/noticesApi';
+import {
+  PreparedCoverUpload,
+  prepareCoverImageFile,
+  fetchLibraryBooks,
+  getCachedLibraryBooks,
+  saveCachedLibraryBooks,
+  createBookApi,
+  updateBookApi,
+  updateBookCoverApi,
+  deleteBookApi,
+  restoreDefaultBooksApi,
+  syncLocalBooksToServer,
+  fetchBookReservations,
+  getCachedReservations,
+  saveCachedReservations,
+  createBookReservationApi,
+  cancelBookReservationApi,
+  dispatchLibraryUpdated,
+  LIBRARY_UPDATED_EVENT,
+} from '../services/libraryApi';
 
 interface DigitalLibraryPageProps {
   onBackToHome: () => void;
@@ -49,79 +75,19 @@ interface DigitalLibraryPageProps {
 
 export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: DigitalLibraryPageProps) {
   // Management Auth & Mode
-  const [isManagementMode, setIsManagementMode] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('vcd_admin_logged_in') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const [adminToken, setAdminToken] = useState<string | null>(() => getStoredAdminToken());
+  const [isManagementMode, setIsManagementMode] = useState<boolean>(() => Boolean(getStoredAdminToken()));
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [adminLoginError, setAdminLoginError] = useState('');
+  const [isLoggingInAdmin, setIsLoggingInAdmin] = useState(false);
 
   // Books & Inventory State
-  const [books, setBooks] = useState<Book[]>(() => {
-    try {
-      const stored = localStorage.getItem('vcd_library_books');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasArtificialSvg = parsed.some(
-            (b: Book) => typeof b.coverImage === 'string' && b.coverImage.startsWith('data:image/svg+xml')
-          );
-          if (hasArtificialSvg || !localStorage.getItem('vcd_book04_estrela_applied')) {
-            const estrelaCover = INITIAL_BOOKS[3]?.coverImage;
-            const cleaned = parsed.map((b: Book, idx: number) => {
-              if (b.id === 'book-04' || idx === 3) {
-                return { ...b, coverImage: estrelaCover };
-              }
-              if (typeof b.coverImage === 'string' && b.coverImage.startsWith('data:image/svg+xml')) {
-                return { ...b, coverImage: undefined };
-              }
-              return b;
-            });
-            localStorage.setItem('vcd_library_books', JSON.stringify(cleaned));
-            localStorage.setItem('vcd_book04_estrela_applied', '1');
-            return cleaned;
-          }
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return INITIAL_BOOKS;
-  });
+  const [books, setBooks] = useState<Book[]>(() => getCachedLibraryBooks());
+  const [failedCoverKeys, setFailedCoverKeys] = useState<Record<string, boolean>>({});
 
   // Reservations State
-  const [reservations, setReservations] = useState<BookReservation[]>(() => {
-    try {
-      const stored = localStorage.getItem('vcd_library_reservations');
-      if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.error(e);
-    }
-    return [
-      {
-        id: 'CETI-LIB-2026-4821',
-        bookId: 'book-05',
-        bookTitle: 'Redação Nota 1000: Técnicas e Repertórios para o ENEM',
-        bookAuthor: 'Profª. Clarice Mendonça & Equipe Pedagógica',
-        bookCategory: 'ENEM & Vestibulares',
-        shelfLocation: 'Estante 03 · Prateleira A (Bancada Preparatória ENEM)',
-        studentName: 'Ana Clara Fernandes',
-        studentMatricula: '2024-VCD-1089',
-        studentGrade: '3º Ano A - Ensino Médio Integral',
-        studentContact: '(89) 99422-1100',
-        reservationDate: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
-        pickupDeadline: new Date(Date.now() + 1000 * 60 * 60 * 30).toISOString(),
-        returnDeadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString(),
-        status: 'Pendente para Retirada',
-        notes: 'Preparação para o simulado do ENEM deste mês.'
-      }
-    ];
-  });
+  const [reservations, setReservations] = useState<BookReservation[]>(() => getCachedReservations());
 
   // UI Tabs & Filters
   const [activeTab, setActiveTab] = useState<'catalog' | 'reservations' | 'management' | 'info'>('catalog');
@@ -151,6 +117,8 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
   const [bookToEdit, setBookToEdit] = useState<Book | null>(null);
   const [bookToDelete, setBookToDelete] = useState<Book | null>(null);
   const [bookForCoverChange, setBookForCoverChange] = useState<Book | null>(null);
+  const [isSavingBook, setIsSavingBook] = useState(false);
+  const [isSavingCover, setIsSavingCover] = useState(false);
 
   // Add/Edit Book Form State
   const [bookFormTitle, setBookFormTitle] = useState('');
@@ -165,6 +133,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
   const [bookFormTotalCopies, setBookFormTotalCopies] = useState<number>(5);
   const [bookFormCoverGradient, setBookFormCoverGradient] = useState('from-emerald-700 to-emerald-950');
   const [bookFormCoverImage, setBookFormCoverImage] = useState<string>('');
+  const [pendingBookCoverUpload, setPendingBookCoverUpload] = useState<PreparedCoverUpload | null>(null);
   const [bookFormBadge, setBookFormBadge] = useState('');
   const [bookFormRecommendedGrade, setBookFormRecommendedGrade] = useState('1º ao 3º Ano do Ensino Médio');
   const [bookFormTags, setBookFormTags] = useState('');
@@ -173,6 +142,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
   // Quick Cover Edit State
   const [coverUrlInput, setCoverUrlInput] = useState('');
   const [coverPreview, setCoverPreview] = useState('');
+  const [pendingQuickCoverUpload, setPendingQuickCoverUpload] = useState<PreparedCoverUpload | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addModalFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -184,21 +154,56 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
   const [studentNotes, setStudentNotes] = useState('');
   const [formError, setFormError] = useState('');
 
-  // Persist books and reservations
+  // Verify admin token and load authoritative books/reservations from backend
   useEffect(() => {
-    try {
-      localStorage.setItem('vcd_library_books', JSON.stringify(books));
-    } catch (e) {
-      console.error('Failed to save books to localStorage:', e);
+    let active = true;
+
+    const refreshData = async () => {
+      const [serverBooks, serverReservations] = await Promise.all([
+        fetchLibraryBooks(),
+        fetchBookReservations(),
+      ]);
+      if (!active) return;
+      if (serverBooks.length > 0) setBooks(serverBooks);
+      setReservations(serverReservations);
+    };
+
+    refreshData();
+
+    const token = getStoredAdminToken();
+    if (token) {
+      verifyAdminSession(token).then(async (valid) => {
+        if (!active) return;
+        if (!valid) {
+          clearAdminToken();
+          setAdminToken(null);
+          setIsManagementMode(false);
+        } else {
+          setAdminToken(token);
+          setIsManagementMode(true);
+          const migrated = await syncLocalBooksToServer(token);
+          if (active && migrated && migrated.length > 0) {
+            setBooks(migrated);
+            dispatchLibraryUpdated();
+          }
+        }
+      });
     }
+
+    window.addEventListener(LIBRARY_UPDATED_EVENT, refreshData);
+    return () => {
+      active = false;
+      window.removeEventListener(LIBRARY_UPDATED_EVENT, refreshData);
+    };
+  }, []);
+
+  // Keep lightweight local cache in sync
+  useEffect(() => {
+    saveCachedLibraryBooks(books);
   }, [books]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('vcd_library_reservations', JSON.stringify(reservations));
-    } catch (e) {
-      console.error('Failed to save reservations to localStorage:', e);
-    }
+    saveCachedReservations(reservations);
   }, [reservations]);
 
   const categories = [
@@ -233,47 +238,69 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
   ).length;
 
   // Management Authentication
-  const handleAdminLoginSubmit = (e: React.FormEvent) => {
+  const handleAdminLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPasswordInput.trim() === '12345') {
+    setAdminLoginError('');
+    const cleanKey = adminPasswordInput.trim();
+    if (!cleanKey) {
+      setAdminLoginError('Informe a chave de acesso da gestão.');
+      return;
+    }
+
+    setIsLoggingInAdmin(true);
+    try {
+      const { token } = await loginAdminServer(cleanKey);
+      setAdminToken(token);
       setIsManagementMode(true);
-      localStorage.setItem('vcd_admin_logged_in', 'true');
       setShowAdminLoginModal(false);
       setAdminPasswordInput('');
       setAdminLoginError('');
+      const migrated = await syncLocalBooksToServer(token);
+      if (migrated && migrated.length > 0) {
+        setBooks(migrated);
+        dispatchLibraryUpdated();
+      }
       showToast('Modo de Gestão da Biblioteca ativado com sucesso!');
-    } else {
-      setAdminLoginError('Chave de acesso inválida. Dica institucional: 12345');
+    } catch (err) {
+      setAdminLoginError(
+        err instanceof Error ? err.message : 'Chave de acesso inválida. Verifique a credencial da gestão.'
+      );
+    } finally {
+      setIsLoggingInAdmin(false);
     }
   };
 
   const handleLogoutManagement = () => {
+    clearAdminToken();
+    setAdminToken(null);
     setIsManagementMode(false);
-    localStorage.removeItem('vcd_admin_logged_in');
     if (activeTab === 'management') {
       setActiveTab('catalog');
     }
     showToast('Modo de Gestão desativado.');
   };
 
-  // Image Upload helper (converts to base64 data URL)
-  const handleImageFileSelect = (file: File, callback: (dataUrl: string) => void) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor selecione um arquivo de imagem válido (JPG, PNG, WebP).');
-      return;
+  const requireValidAdminToken = (): string | null => {
+    const token = adminToken || getStoredAdminToken();
+    if (!token) {
+      setIsManagementMode(false);
+      setShowAdminLoginModal(true);
+      return null;
     }
-    if (file.size > 4 * 1024 * 1024) {
-      alert('A imagem é muito grande. Escolha uma imagem de até 4MB.');
-      return;
+    return token;
+  };
+
+  // Image Upload helper (validates, optimizes and prepares for persistent server upload)
+  const handleImageFileSelect = async (
+    file: File,
+    callback: (upload: PreparedCoverUpload) => void
+  ) => {
+    try {
+      const prepared = await prepareCoverImageFile(file);
+      callback(prepared);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao processar a imagem selecionada.');
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (result) {
-        callback(result);
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   // Open Add Book Modal
@@ -291,6 +318,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
     setBookFormTotalCopies(5);
     setBookFormCoverGradient('from-emerald-700 to-emerald-950');
     setBookFormCoverImage('');
+    setPendingBookCoverUpload(null);
     setBookFormBadge('Novo no Acervo');
     setBookFormRecommendedGrade('Ensino Médio Integral');
     setBookFormTags('Literatura, Ensino Médio');
@@ -313,6 +341,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
     setBookFormTotalCopies(book.totalCopies);
     setBookFormCoverGradient(book.coverGradient || 'from-emerald-700 to-emerald-950');
     setBookFormCoverImage(book.coverImage || '');
+    setPendingBookCoverUpload(null);
     setBookFormBadge(book.badge || '');
     setBookFormRecommendedGrade(book.recommendedGrade);
     setBookFormTags(book.tags.join(', '));
@@ -321,7 +350,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
   };
 
   // Submit Add or Edit Book
-  const handleSaveBook = (e: React.FormEvent) => {
+  const handleSaveBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookFormTitle.trim()) {
       setBookFormError('Por favor informe o título da obra.');
@@ -336,68 +365,80 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
       return;
     }
 
+    const token = requireValidAdminToken();
+    if (!token) return;
+
     const tagList = bookFormTags
       .split(',')
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
-    if (bookToEdit) {
-      // Update existing book
-      const differenceInTotal = bookFormTotalCopies - bookToEdit.totalCopies;
-      const updatedAvailable = Math.max(0, bookToEdit.availableCopies + differenceInTotal);
+    setIsSavingBook(true);
+    setBookFormError('');
 
-      const updatedBook: Book = {
-        ...bookToEdit,
-        title: bookFormTitle.trim(),
-        author: bookFormAuthor.trim(),
-        category: bookFormCategory as Book['category'],
-        isbn: bookFormIsbn.trim() || bookToEdit.isbn,
-        year: Number(bookFormYear) || bookToEdit.year,
-        pages: Number(bookFormPages) || bookToEdit.pages,
-        publisher: bookFormPublisher.trim() || bookToEdit.publisher,
-        synopsis: bookFormSynopsis.trim() || 'Obra disponível para consulta e empréstimo na biblioteca do CETI.',
-        shelfLocation: bookFormShelfLocation.trim() || bookToEdit.shelfLocation,
-        totalCopies: Number(bookFormTotalCopies),
-        availableCopies: updatedAvailable,
-        coverGradient: bookFormCoverGradient,
-        coverImage: bookFormCoverImage.trim() || undefined,
-        badge: bookFormBadge.trim() || undefined,
-        recommendedGrade: bookFormRecommendedGrade.trim(),
-        tags: tagList.length > 0 ? tagList : bookToEdit.tags
-      };
+    try {
+      if (bookToEdit) {
+        const updatedBook = await updateBookApi(token, bookToEdit.id, {
+          title: bookFormTitle.trim(),
+          author: bookFormAuthor.trim(),
+          category: bookFormCategory,
+          isbn: bookFormIsbn.trim() || bookToEdit.isbn,
+          year: Number(bookFormYear) || bookToEdit.year,
+          pages: Number(bookFormPages) || bookToEdit.pages,
+          publisher: bookFormPublisher.trim() || bookToEdit.publisher,
+          synopsis: bookFormSynopsis.trim() || 'Obra disponível para consulta e empréstimo na biblioteca do CETI.',
+          shelfLocation: bookFormShelfLocation.trim() || bookToEdit.shelfLocation,
+          totalCopies: Number(bookFormTotalCopies),
+          coverGradient: bookFormCoverGradient,
+          coverImage: pendingBookCoverUpload ? undefined : bookFormCoverImage.trim() || undefined,
+          coverUpload: pendingBookCoverUpload,
+          badge: bookFormBadge.trim() || undefined,
+          recommendedGrade: bookFormRecommendedGrade.trim(),
+          tags: tagList.length > 0 ? tagList : bookToEdit.tags,
+        });
 
-      setBooks((prev) => prev.map((b) => (b.id === bookToEdit.id ? updatedBook : b)));
-      showToast(`Livro "${updatedBook.title}" atualizado com sucesso!`);
-    } else {
-      // Add new book
-      const newBookId = `book-${Date.now().toString().slice(-6)}`;
-      const newBook: Book = {
-        id: newBookId,
-        title: bookFormTitle.trim(),
-        author: bookFormAuthor.trim(),
-        category: bookFormCategory as Book['category'],
-        isbn: bookFormIsbn.trim() || `978-85-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(10 + Math.random() * 90)}-0`,
-        year: Number(bookFormYear) || new Date().getFullYear(),
-        pages: Number(bookFormPages) || 150,
-        publisher: bookFormPublisher.trim() || 'Editora Escolar CETI',
-        synopsis: bookFormSynopsis.trim() || 'Obra cadastrada pela equipe pedagógica para leitura e consulta dos alunos do CETI Verônica Celestina Dias.',
-        shelfLocation: bookFormShelfLocation.trim() || 'Estante 01 · Prateleira A (Geral)',
-        totalCopies: Number(bookFormTotalCopies),
-        availableCopies: Number(bookFormTotalCopies),
-        coverGradient: bookFormCoverGradient,
-        coverImage: bookFormCoverImage.trim() || undefined,
-        badge: bookFormBadge.trim() || 'Novo no Acervo',
-        recommendedGrade: bookFormRecommendedGrade.trim() || 'Ensino Médio',
-        rating: 5.0,
-        tags: tagList.length > 0 ? tagList : ['Acervo Escolar', 'Leitura']
-      };
+        setBooks((prev) => prev.map((b) => (b.id === bookToEdit.id ? updatedBook : b)));
+        dispatchLibraryUpdated();
+        showToast(`Livro "${updatedBook.title}" atualizado com sucesso!`);
+      } else {
+        const newBook = await createBookApi(token, {
+          title: bookFormTitle.trim(),
+          author: bookFormAuthor.trim(),
+          category: bookFormCategory,
+          isbn: bookFormIsbn.trim() || `978-85-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(10 + Math.random() * 90)}-0`,
+          year: Number(bookFormYear) || new Date().getFullYear(),
+          pages: Number(bookFormPages) || 150,
+          publisher: bookFormPublisher.trim() || 'Editora Escolar CETI',
+          synopsis: bookFormSynopsis.trim() || 'Obra cadastrada pela equipe pedagógica para leitura e consulta dos alunos do CETI Verônica Celestina Dias.',
+          shelfLocation: bookFormShelfLocation.trim() || 'Estante 01 · Prateleira A (Geral)',
+          totalCopies: Number(bookFormTotalCopies),
+          coverGradient: bookFormCoverGradient,
+          coverImage: pendingBookCoverUpload ? undefined : bookFormCoverImage.trim() || undefined,
+          coverUpload: pendingBookCoverUpload,
+          badge: bookFormBadge.trim() || 'Novo no Acervo',
+          recommendedGrade: bookFormRecommendedGrade.trim() || 'Ensino Médio',
+          tags: tagList.length > 0 ? tagList : ['Acervo Escolar', 'Leitura'],
+        });
 
-      setBooks((prev) => [newBook, ...prev]);
-      showToast(`Livro "${newBook.title}" adicionado ao catálogo com sucesso!`);
+        setBooks((prev) => [newBook, ...prev]);
+        dispatchLibraryUpdated();
+        showToast(`Livro "${newBook.title}" adicionado ao catálogo com sucesso!`);
+      }
+
+      setShowAddBookModal(false);
+      setBookToEdit(null);
+      setPendingBookCoverUpload(null);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        clearAdminToken();
+        setAdminToken(null);
+        setIsManagementMode(false);
+        setShowAdminLoginModal(true);
+      }
+      setBookFormError(err instanceof Error ? err.message : 'Erro ao salvar livro no servidor.');
+    } finally {
+      setIsSavingBook(false);
     }
-
-    setShowAddBookModal(false);
-    setBookToEdit(null);
   };
 
   // Open Cover Management Modal
@@ -405,40 +446,53 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
     setBookForCoverChange(book);
     setCoverUrlInput(book.coverImage || '');
     setCoverPreview(book.coverImage || '');
+    setPendingQuickCoverUpload(null);
   };
 
   // Save Book Cover
-  const handleSaveCover = () => {
+  const handleSaveCover = async () => {
     if (!bookForCoverChange) return;
 
-    const newCover = coverPreview.trim();
-    setBooks((prev) =>
-      prev.map((b) =>
-        b.id === bookForCoverChange.id
-          ? { ...b, coverImage: newCover ? newCover : undefined }
-          : b
-      )
-    );
+    const token = requireValidAdminToken();
+    if (!token) return;
 
-    // Also update selectedBookForDetails if open
-    if (selectedBookForDetails && selectedBookForDetails.id === bookForCoverChange.id) {
-      setSelectedBookForDetails({
-        ...selectedBookForDetails,
-        coverImage: newCover ? newCover : undefined
+    setIsSavingCover(true);
+    try {
+      const updatedBook = await updateBookCoverApi(token, bookForCoverChange.id, {
+        coverImage: pendingQuickCoverUpload ? undefined : coverPreview.trim() || undefined,
+        coverUpload: pendingQuickCoverUpload,
       });
-    }
 
-    showToast(`Capa do livro "${bookForCoverChange.title}" atualizada com sucesso!`);
-    setBookForCoverChange(null);
-    setCoverUrlInput('');
-    setCoverPreview('');
+      setBooks((prev) => prev.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
+      if (selectedBookForDetails && selectedBookForDetails.id === updatedBook.id) {
+        setSelectedBookForDetails(updatedBook);
+      }
+      dispatchLibraryUpdated();
+      showToast(`Capa do livro "${bookForCoverChange.title}" atualizada com sucesso!`);
+      setBookForCoverChange(null);
+      setCoverUrlInput('');
+      setCoverPreview('');
+      setPendingQuickCoverUpload(null);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        clearAdminToken();
+        setAdminToken(null);
+        setIsManagementMode(false);
+        setShowAdminLoginModal(true);
+      }
+      alert(err instanceof Error ? err.message : 'Erro ao salvar capa no servidor.');
+    } finally {
+      setIsSavingCover(false);
+    }
   };
 
   // Confirm Delete Book
-  const handleConfirmDeleteBook = () => {
+  const handleConfirmDeleteBook = async () => {
     if (!bookToDelete) return;
 
-    // Check if there are active reservations
+    const token = requireValidAdminToken();
+    if (!token) return;
+
     const hasActiveReservations = reservations.some(
       (r) => r.bookId === bookToDelete.id && (r.status === 'Pendente para Retirada' || r.status === 'Retirado / Emprestado')
     );
@@ -450,36 +504,48 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
       if (!proceed) return;
     }
 
-    setBooks((prev) => prev.filter((b) => b.id !== bookToDelete.id));
-    showToast(`Livro "${bookToDelete.title}" removido do catálogo com sucesso.`);
-    setBookToDelete(null);
-
-    if (selectedBookForDetails && selectedBookForDetails.id === bookToDelete.id) {
-      setSelectedBookForDetails(null);
+    try {
+      await deleteBookApi(token, bookToDelete.id);
+      setBooks((prev) => prev.filter((b) => b.id !== bookToDelete.id));
+      dispatchLibraryUpdated();
+      showToast(`Livro "${bookToDelete.title}" removido do catálogo com sucesso.`);
+      if (selectedBookForDetails && selectedBookForDetails.id === bookToDelete.id) {
+        setSelectedBookForDetails(null);
+      }
+      setBookToDelete(null);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        clearAdminToken();
+        setAdminToken(null);
+        setIsManagementMode(false);
+        setShowAdminLoginModal(true);
+      }
+      alert(err instanceof Error ? err.message : 'Erro ao remover livro.');
     }
   };
 
   // Restore Default Catalog
-  const handleRestoreInitialBooks = () => {
+  const handleRestoreInitialBooks = async () => {
     const confirmRestore = window.confirm(
       'Deseja restaurar o catálogo de livros padrão inicial da escola? Seus livros adicionados recentemente serão mesclados com o acervo base.'
     );
     if (!confirmRestore) return;
 
-    // Merge without duplicates by title
-    setBooks((current) => {
-      const existingTitles = new Set(current.map((b) => b.title.toLowerCase().trim()));
-      const toAdd = INITIAL_BOOKS.filter((b) => !existingTitles.has(b.title.toLowerCase().trim()));
-      const merged = [...current, ...toAdd];
-      localStorage.setItem('vcd_library_books', JSON.stringify(merged));
-      return merged;
-    });
+    const token = requireValidAdminToken();
+    if (!token) return;
 
-    showToast('Acervo padrão sincronizado com sucesso!');
+    try {
+      const merged = await restoreDefaultBooksApi(token);
+      setBooks(merged);
+      dispatchLibraryUpdated();
+      showToast('Acervo padrão sincronizado com sucesso!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao sincronizar acervo padrão.');
+    }
   };
 
   // Handle Reservation Submit
-  const handleReserveSubmit = (e: React.FormEvent) => {
+  const handleReserveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBookForReservation) return;
 
@@ -498,70 +564,49 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
       return;
     }
 
-    // Generate Protocol
-    const randomCode = Math.floor(1000 + Math.random() * 9000);
-    const newReservationId = `CETI-LIB-${new Date().getFullYear()}-${randomCode}`;
+    try {
+      const { reservation, book } = await createBookReservationApi({
+        bookId: selectedBookForReservation.id,
+        studentName: studentName.trim(),
+        studentMatricula: studentMatricula.trim(),
+        studentGrade,
+        studentContact: studentContact.trim() || 'Não informado',
+        notes: studentNotes.trim(),
+      });
 
-    const pickupDate = new Date();
-    pickupDate.setDate(pickupDate.getDate() + 2); // 48h to pick up
+      setBooks((prev) => prev.map((item) => (item.id === book.id ? book : item)));
+      setReservations((prev) => [reservation, ...prev]);
+      dispatchLibraryUpdated();
 
-    const returnDate = new Date();
-    returnDate.setDate(returnDate.getDate() + 16); // 14 days after pickup
+      setConfirmedReservation(reservation);
+      setSelectedBookForReservation(null);
+      setFormError('');
 
-    const newReservation: BookReservation = {
-      id: newReservationId,
-      bookId: selectedBookForReservation.id,
-      bookTitle: selectedBookForReservation.title,
-      bookAuthor: selectedBookForReservation.author,
-      bookCategory: selectedBookForReservation.category,
-      shelfLocation: selectedBookForReservation.shelfLocation,
-      studentName: studentName.trim(),
-      studentMatricula: studentMatricula.trim(),
-      studentGrade: studentGrade,
-      studentContact: studentContact.trim() || 'Não informado',
-      reservationDate: new Date().toISOString(),
-      pickupDeadline: pickupDate.toISOString(),
-      returnDeadline: returnDate.toISOString(),
-      status: 'Pendente para Retirada',
-      notes: studentNotes.trim()
-    };
-
-    // Decrement available copies in book catalog
-    setBooks((prev) =>
-      prev.map((item) =>
-        item.id === selectedBookForReservation.id
-          ? { ...item, availableCopies: Math.max(0, item.availableCopies - 1) }
-          : item
-      )
-    );
-
-    // Save reservation
-    setReservations((prev) => [newReservation, ...prev]);
-
-    // Show voucher
-    setConfirmedReservation(newReservation);
-    setSelectedBookForReservation(null);
-    setFormError('');
-
-    // Reset inputs
-    setStudentName('');
-    setStudentMatricula('');
-    setStudentContact('');
-    setStudentNotes('');
-    showToast('Reserva realizada com sucesso! Protocolo gerado.');
+      setStudentName('');
+      setStudentMatricula('');
+      setStudentContact('');
+      setStudentNotes('');
+      showToast('Reserva realizada com sucesso! Protocolo gerado.');
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Erro ao confirmar reserva.');
+    }
   };
 
-  const handleCancelReservation = (reservationId: string, bookId: string) => {
+  const handleCancelReservation = async (reservationId: string, bookId: string) => {
     if (window.confirm('Tem certeza de que deseja cancelar esta reserva? O livro voltará a ficar disponível para outros alunos.')) {
-      setReservations((prev) =>
-        prev.map((r) => (r.id === reservationId ? { ...r, status: 'Cancelado' } : r))
-      );
-
-      // Increment available copy back
-      setBooks((prev) =>
-        prev.map((b) => (b.id === bookId ? { ...b, availableCopies: Math.min(b.totalCopies, b.availableCopies + 1) } : b))
-      );
-      showToast('Reserva cancelada com sucesso.');
+      try {
+        await cancelBookReservationApi(reservationId);
+        setReservations((prev) =>
+          prev.map((r) => (r.id === reservationId ? { ...r, status: 'Cancelado' } : r))
+        );
+        setBooks((prev) =>
+          prev.map((b) => (b.id === bookId ? { ...b, availableCopies: Math.min(b.totalCopies, b.availableCopies + 1) } : b))
+        );
+        dispatchLibraryUpdated();
+        showToast('Reserva cancelada com sucesso.');
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Erro ao cancelar reserva.');
+      }
     }
   };
 
@@ -957,6 +1002,8 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredBooks.map((book) => {
                   const isAvailable = book.availableCopies > 0;
+                  const coverKey = `${book.id}:${book.coverImage || ''}`;
+                  const showRealCover = Boolean(book.coverImage && !failedCoverKeys[coverKey]);
                   return (
                     <article
                       key={book.id}
@@ -964,15 +1011,14 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                     >
                       {/* Top Visual / Real Cover Image */}
                       <div className="relative">
-                        {book.coverImage ? (
+                        {showRealCover ? (
                           <div className="relative h-56 w-full overflow-hidden bg-emerald-950">
                             <img
                               src={book.coverImage}
                               alt={`Capa do livro ${book.title}`}
                               className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                              onError={(e) => {
-                                // If image fails to load, fallback gracefully
-                                (e.target as HTMLElement).style.display = 'none';
+                              onError={() => {
+                                setFailedCoverKeys((prev) => ({ ...prev, [coverKey]: true }));
                               }}
                             />
                             {/* Gradient Overlay for Readability */}
@@ -1368,17 +1414,23 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-emerald-900/60">
-                    {books.map((b) => (
+                    {books.map((b) => {
+                      const thumbKey = `tbl-${b.id}:${b.coverImage || ''}`;
+                      const showThumbCover = Boolean(b.coverImage && !failedCoverKeys[thumbKey]);
+                      return (
                       <tr key={b.id} className="hover:bg-emerald-900/30 transition-colors">
                         
                         {/* Book Cover Thumbnail */}
                         <td className="py-3 px-3">
                           <div className="relative group/thumb">
-                            {b.coverImage ? (
+                            {showThumbCover ? (
                               <img
                                 src={b.coverImage}
                                 alt={b.title}
                                 className="w-10 h-14 object-cover rounded-lg shadow border border-emerald-700/60"
+                                onError={() => {
+                                  setFailedCoverKeys((prev) => ({ ...prev, [thumbKey]: true }));
+                                }}
                               />
                             ) : (
                               <div className={`w-10 h-14 rounded-lg bg-gradient-to-r ${b.coverGradient} flex items-center justify-center text-white/50 border border-white/10`}>
@@ -1453,7 +1505,8 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                         </td>
 
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1589,9 +1642,10 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
               <div className="pt-1">
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center gap-1.5"
+                  disabled={isLoggingInAdmin}
+                  className="w-full py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center gap-1.5 disabled:opacity-60"
                 >
-                  Entrar no Modo Gestão
+                  {isLoggingInAdmin ? 'Verificando acesso...' : 'Entrar no Modo Gestão'}
                 </button>
               </div>
             </form>
@@ -1646,7 +1700,10 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                   {bookFormCoverImage && (
                     <button
                       type="button"
-                      onClick={() => setBookFormCoverImage('')}
+                      onClick={() => {
+                        setBookFormCoverImage('');
+                        setPendingBookCoverUpload(null);
+                      }}
                       className="text-[11px] text-rose-300 hover:text-rose-200 underline cursor-pointer"
                     >
                       Remover imagem da capa
@@ -1691,8 +1748,12 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            handleImageFileSelect(file, (dataUrl) => setBookFormCoverImage(dataUrl));
+                            handleImageFileSelect(file, (upload) => {
+                              setPendingBookCoverUpload(upload);
+                              setBookFormCoverImage(upload.previewDataUrl);
+                            });
                           }
+                          e.target.value = '';
                         }}
                         className="hidden"
                       />
@@ -1713,8 +1774,11 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                       </span>
                       <input
                         type="url"
-                        value={bookFormCoverImage}
-                        onChange={(e) => setBookFormCoverImage(e.target.value)}
+                        value={pendingBookCoverUpload ? '' : bookFormCoverImage}
+                        onChange={(e) => {
+                          setPendingBookCoverUpload(null);
+                          setBookFormCoverImage(e.target.value);
+                        }}
                         placeholder="https://exemplo.com/capa-do-livro.jpg"
                         className="w-full bg-emerald-950/80 text-white px-3 py-2 rounded-xl border border-emerald-700/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 text-xs"
                       />
@@ -1730,7 +1794,10 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                           <button
                             key={p.id}
                             type="button"
-                            onClick={() => setBookFormCoverImage(p.url)}
+                            onClick={() => {
+                              setPendingBookCoverUpload(null);
+                              setBookFormCoverImage(p.url);
+                            }}
                             className="px-2 py-1 rounded bg-emerald-950 text-emerald-300 hover:bg-emerald-900 border border-emerald-800 text-[10px] cursor-pointer"
                           >
                             {p.label.split('&')[0]}
@@ -1952,10 +2019,17 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
 
                 <button
                   type="submit"
-                  className="w-2/3 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-bold transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                  disabled={isSavingBook}
+                  className="w-2/3 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-bold transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60"
                 >
                   <Check className="w-4 h-4" />
-                  <span>{bookToEdit ? 'Salvar Alterações' : 'Confirmar e Inserir no Catálogo'}</span>
+                  <span>
+                    {isSavingBook
+                      ? 'Salvando no servidor...'
+                      : bookToEdit
+                      ? 'Salvar Alterações'
+                      : 'Confirmar e Inserir no Catálogo'}
+                  </span>
                 </button>
               </div>
 
@@ -2027,11 +2101,13 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      handleImageFileSelect(file, (dataUrl) => {
-                        setCoverPreview(dataUrl);
+                      handleImageFileSelect(file, (upload) => {
+                        setPendingQuickCoverUpload(upload);
+                        setCoverPreview(upload.previewDataUrl);
                         setCoverUrlInput('');
                       });
                     }
+                    e.target.value = '';
                   }}
                   className="hidden"
                 />
@@ -2055,6 +2131,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                     type="url"
                     value={coverUrlInput}
                     onChange={(e) => {
+                      setPendingQuickCoverUpload(null);
                       setCoverUrlInput(e.target.value);
                       setCoverPreview(e.target.value);
                     }}
@@ -2065,6 +2142,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                     <button
                       type="button"
                       onClick={() => {
+                        setPendingQuickCoverUpload(null);
                         setCoverUrlInput('');
                         setCoverPreview('');
                       }}
@@ -2087,6 +2165,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                       key={preset.id}
                       type="button"
                       onClick={() => {
+                        setPendingQuickCoverUpload(null);
                         setCoverPreview(preset.url);
                         setCoverUrlInput(preset.url);
                       }}
@@ -2111,6 +2190,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                 <button
                   type="button"
                   onClick={() => {
+                    setPendingQuickCoverUpload(null);
                     setCoverPreview('');
                     setCoverUrlInput('');
                   }}
@@ -2125,6 +2205,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                   type="button"
                   onClick={() => {
                     setBookForCoverChange(null);
+                    setPendingQuickCoverUpload(null);
                     setCoverUrlInput('');
                     setCoverPreview('');
                   }}
@@ -2135,11 +2216,12 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
 
                 <button
                   type="button"
+                  disabled={isSavingCover}
                   onClick={handleSaveCover}
-                  className="px-5 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-1.5 disabled:opacity-60"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Salvar Capa</span>
+                  <span>{isSavingCover ? 'Salvando...' : 'Salvar Capa'}</span>
                 </button>
               </div>
             </div>
@@ -2227,12 +2309,17 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
             </button>
 
             {/* Book Cover Header */}
-            {selectedBookForDetails.coverImage ? (
+            {selectedBookForDetails.coverImage &&
+            !failedCoverKeys[`det-${selectedBookForDetails.id}:${selectedBookForDetails.coverImage}`] ? (
               <div className="relative rounded-2xl overflow-hidden h-60 w-full bg-emerald-950 border border-white/10 shadow-lg">
                 <img
                   src={selectedBookForDetails.coverImage}
                   alt={`Capa do livro ${selectedBookForDetails.title}`}
                   className="w-full h-full object-cover object-center"
+                  onError={() => {
+                    const k = `det-${selectedBookForDetails.id}:${selectedBookForDetails.coverImage || ''}`;
+                    setFailedCoverKeys((prev) => ({ ...prev, [k]: true }));
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-emerald-950 via-emerald-950/40 to-transparent" />
                 <div className="absolute top-3 left-3">

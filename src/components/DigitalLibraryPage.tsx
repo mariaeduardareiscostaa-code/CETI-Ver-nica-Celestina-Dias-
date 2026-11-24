@@ -64,6 +64,7 @@ import {
   saveCachedReservations,
   createBookReservationApi,
   cancelBookReservationApi,
+  updateBookReservationStatusApi,
   dispatchLibraryUpdated,
   LIBRARY_UPDATED_EVENT,
 } from '../services/libraryApi';
@@ -91,6 +92,10 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
 
   // UI Tabs & Filters
   const [activeTab, setActiveTab] = useState<'catalog' | 'reservations' | 'management' | 'info'>('catalog');
+  const [managementSubTab, setManagementSubTab] = useState<'reservations' | 'catalog'>('reservations');
+  const [managementResFilter, setManagementResFilter] = useState<string>('todos');
+  const [managementResSearch, setManagementResSearch] = useState('');
+  const [updatingReservationId, setUpdatingReservationId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
@@ -234,7 +239,13 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
   const totalCopiesCount = books.reduce((acc, curr) => acc + (curr.totalCopies || 0), 0);
   const availableCopiesCount = books.reduce((acc, curr) => acc + (curr.availableCopies || 0), 0);
   const activeReservationsCount = reservations.filter(
-    (r) => r.status === 'Pendente para Retirada' || r.status === 'Retirado / Emprestado'
+    (r) =>
+      r.status === 'Pendente para Retirada' ||
+      r.status === 'Aprovado para Retirada' ||
+      r.status === 'Retirado / Emprestado'
+  ).length;
+  const pendingReservationsCount = reservations.filter(
+    (r) => r.status === 'Pendente para Retirada'
   ).length;
 
   // Management Authentication
@@ -494,7 +505,11 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
     if (!token) return;
 
     const hasActiveReservations = reservations.some(
-      (r) => r.bookId === bookToDelete.id && (r.status === 'Pendente para Retirada' || r.status === 'Retirado / Emprestado')
+      (r) =>
+        r.bookId === bookToDelete.id &&
+        (r.status === 'Pendente para Retirada' ||
+          r.status === 'Aprovado para Retirada' ||
+          r.status === 'Retirado / Emprestado')
     );
 
     if (hasActiveReservations) {
@@ -594,6 +609,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
 
   const handleCancelReservation = async (reservationId: string, bookId: string) => {
     if (window.confirm('Tem certeza de que deseja cancelar esta reserva? O livro voltará a ficar disponível para outros alunos.')) {
+      setUpdatingReservationId(reservationId);
       try {
         await cancelBookReservationApi(reservationId);
         setReservations((prev) =>
@@ -606,7 +622,56 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
         showToast('Reserva cancelada com sucesso.');
       } catch (err) {
         alert(err instanceof Error ? err.message : 'Erro ao cancelar reserva.');
+      } finally {
+        setUpdatingReservationId(null);
       }
+    }
+  };
+
+  const handleAdminUpdateReservationStatus = async (
+    reservationId: string,
+    newStatus: BookReservation['status']
+  ) => {
+    const token = requireValidAdminToken();
+    if (!token) return;
+
+    if (
+      newStatus === 'Cancelado' &&
+      !window.confirm('Deseja realmente cancelar esta reserva? O exemplar voltará a ficar disponível no catálogo.')
+    ) {
+      return;
+    }
+
+    setUpdatingReservationId(reservationId);
+    try {
+      await updateBookReservationStatusApi(token, reservationId, newStatus);
+      const [serverBooks, serverReservations] = await Promise.all([
+        fetchLibraryBooks(),
+        fetchBookReservations(),
+      ]);
+      if (serverBooks.length > 0) setBooks(serverBooks);
+      setReservations(serverReservations);
+      dispatchLibraryUpdated();
+
+      if (newStatus === 'Aprovado para Retirada') {
+        showToast('Reserva aprovada! O aluno já pode retirar o exemplar na biblioteca.');
+      } else if (newStatus === 'Cancelado') {
+        showToast('Reserva cancelada e exemplar devolvido ao acervo.');
+      } else if (newStatus === 'Retirado / Emprestado') {
+        showToast('Entrega confirmada! Reserva marcada como Retirado / Emprestado.');
+      } else if (newStatus === 'Devolvido') {
+        showToast('Devolução registrada! Exemplar liberado no catálogo.');
+      }
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        clearAdminToken();
+        setAdminToken(null);
+        setIsManagementMode(false);
+        setShowAdminLoginModal(true);
+      }
+      alert(err instanceof Error ? err.message : 'Erro ao atualizar status da reserva.');
+    } finally {
+      setUpdatingReservationId(null);
     }
   };
 
@@ -877,7 +942,14 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
               }`}
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>Gestão do Acervo ({books.length})</span>
+              <span>Gestão da Biblioteca</span>
+              {pendingReservationsCount > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === 'management' ? 'bg-stone-950 text-amber-300' : 'bg-amber-400 text-stone-950'
+                }`}>
+                  {pendingReservationsCount} pendente{pendingReservationsCount > 1 ? 's' : ''}
+                </span>
+              )}
             </button>
           )}
 
@@ -1255,9 +1327,11 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
               <div className="space-y-4">
                 {filteredStudentReservations.map((res) => {
                   const isPending = res.status === 'Pendente para Retirada';
+                  const isApproved = res.status === 'Aprovado para Retirada';
                   const isBorrowed = res.status === 'Retirado / Emprestado';
                   const isReturned = res.status === 'Devolvido';
                   const isCancelled = res.status === 'Cancelado';
+                  const isBusy = updatingReservationId === res.id;
 
                   return (
                     <div
@@ -1285,6 +1359,8 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                               isPending
                                 ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40'
+                                : isApproved
+                                ? 'bg-teal-400/20 text-teal-300 border border-teal-400/40'
                                 : isBorrowed
                                 ? 'bg-blue-400/20 text-blue-300 border border-blue-400/40'
                                 : isReturned
@@ -1293,6 +1369,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                             }`}
                           >
                             {isPending && <Clock className="w-3.5 h-3.5" />}
+                            {isApproved && <CheckCircle2 className="w-3.5 h-3.5" />}
                             {isBorrowed && <BookCheck className="w-3.5 h-3.5" />}
                             {isReturned && <CheckCircle2 className="w-3.5 h-3.5" />}
                             {isCancelled && <AlertCircle className="w-3.5 h-3.5" />}
@@ -1337,7 +1414,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                           <span>Copiar Protocolo</span>
                         </button>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => setConfirmedReservation(res)}
                             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-400 hover:bg-emerald-300 text-emerald-950 text-xs font-bold cursor-pointer"
@@ -1346,10 +1423,48 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                             <span>Ver Comprovante Oficial</span>
                           </button>
 
-                          {isPending && (
+                          {isManagementMode && isPending && (
                             <button
-                              onClick={() => handleCancelReservation(res.id, res.bookId)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-200 text-xs font-semibold border border-rose-800/60 cursor-pointer"
+                              onClick={() => handleAdminUpdateReservationStatus(res.id, 'Aprovado para Retirada')}
+                              disabled={isBusy}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-400 hover:bg-teal-300 text-emerald-950 text-xs font-bold cursor-pointer disabled:opacity-60"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Aprovar Reserva</span>
+                            </button>
+                          )}
+
+                          {isManagementMode && (isPending || isApproved) && (
+                            <button
+                              onClick={() => handleAdminUpdateReservationStatus(res.id, 'Retirado / Emprestado')}
+                              disabled={isBusy}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/30 hover:bg-blue-500/40 text-blue-100 text-xs font-semibold border border-blue-400/40 cursor-pointer disabled:opacity-60"
+                            >
+                              <BookCheck className="w-3.5 h-3.5" />
+                              <span>Confirmar Retirada</span>
+                            </button>
+                          )}
+
+                          {isManagementMode && isBorrowed && (
+                            <button
+                              onClick={() => handleAdminUpdateReservationStatus(res.id, 'Devolvido')}
+                              disabled={isBusy}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-100 text-xs font-semibold border border-emerald-400/40 cursor-pointer disabled:opacity-60"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Registrar Devolução</span>
+                            </button>
+                          )}
+
+                          {(isPending || isApproved) && (
+                            <button
+                              onClick={() =>
+                                isManagementMode
+                                  ? handleAdminUpdateReservationStatus(res.id, 'Cancelado')
+                                  : handleCancelReservation(res.id, res.bookId)
+                              }
+                              disabled={isBusy}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-200 text-xs font-semibold border border-rose-800/60 cursor-pointer disabled:opacity-60"
                             >
                               <X className="w-3.5 h-3.5" />
                               <span>Cancelar Reserva</span>
@@ -1374,33 +1489,270 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                 <div>
                   <h3 className="text-xl font-bold text-white flex items-center gap-2">
                     <ShieldCheck className="w-6 h-6 text-amber-300" />
-                    <span>Painel da Gestão: Acervo & Capas da Biblioteca</span>
+                    <span>Painel da Gestão: Reservas & Acervo da Biblioteca</span>
                   </h3>
                   <p className="text-xs text-emerald-300/80 mt-1">
-                    Adicione novos livros, remova títulos do catálogo escolar e atualize capas com fotos do dispositivo ou links.
+                    Aprove ou cancele solicitações de reservas dos alunos, gerencie entregas e administre livros e capas do catálogo.
                   </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={handleOpenAddBook}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-bold text-xs transition-all shadow-md active:scale-95 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>+ Adicionar Novo Livro</span>
-                  </button>
-                  <button
-                    onClick={handleRestoreInitialBooks}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 text-xs font-semibold transition-colors cursor-pointer"
-                    title="Mesclar e restaurar títulos padrão da SEDUC"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Restaurar Base SEDUC</span>
-                  </button>
+                  <div className="flex bg-emerald-900/70 p-1 rounded-xl border border-emerald-700/60">
+                    <button
+                      onClick={() => setManagementSubTab('reservations')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        managementSubTab === 'reservations'
+                          ? 'bg-amber-400 text-stone-950 shadow-sm'
+                          : 'text-emerald-200 hover:text-white'
+                      }`}
+                    >
+                      <BookmarkCheck className="w-3.5 h-3.5" />
+                      <span>Reservas ({reservations.length})</span>
+                    </button>
+                    <button
+                      onClick={() => setManagementSubTab('catalog')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        managementSubTab === 'catalog'
+                          ? 'bg-amber-400 text-stone-950 shadow-sm'
+                          : 'text-emerald-200 hover:text-white'
+                      }`}
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>Acervo & Capas ({books.length})</span>
+                    </button>
+                  </div>
+
+                  {managementSubTab === 'catalog' && (
+                    <>
+                      <button
+                        onClick={handleOpenAddBook}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-bold text-xs transition-all shadow-md active:scale-95 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>+ Adicionar Novo Livro</span>
+                      </button>
+                      <button
+                        onClick={handleRestoreInitialBooks}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 text-xs font-semibold transition-colors cursor-pointer"
+                        title="Mesclar e restaurar títulos padrão da SEDUC"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Restaurar Base SEDUC</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Management Table */}
+              {/* MANAGEMENT SUB-TAB 1: APPROVE / CANCEL RESERVATIONS */}
+              {managementSubTab === 'reservations' && (
+                <div className="space-y-4">
+                  <div className="flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-emerald-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={managementResSearch}
+                        onChange={(e) => setManagementResSearch(e.target.value)}
+                        placeholder="Buscar reserva por aluno, matrícula, livro ou protocolo..."
+                        className="w-full bg-emerald-900/60 text-white pl-10 pr-4 py-2 rounded-xl border border-emerald-700/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 placeholder-emerald-400/50 text-xs"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 text-xs">
+                      {[
+                        'todos',
+                        'Pendente para Retirada',
+                        'Aprovado para Retirada',
+                        'Retirado / Emprestado',
+                        'Devolvido',
+                        'Cancelado',
+                      ].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => setManagementResFilter(status)}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                            managementResFilter === status
+                              ? 'bg-emerald-400 text-emerald-950'
+                              : 'bg-emerald-900/70 text-emerald-200 hover:bg-emerald-800 border border-emerald-800'
+                          }`}
+                        >
+                          {status === 'todos' ? 'Todas' : status}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const filteredAdminRes = reservations.filter((res) => {
+                      const q = managementResSearch.trim().toLowerCase();
+                      const matchesSearch =
+                        !q ||
+                        res.studentName.toLowerCase().includes(q) ||
+                        res.studentMatricula.toLowerCase().includes(q) ||
+                        res.bookTitle.toLowerCase().includes(q) ||
+                        res.id.toLowerCase().includes(q);
+                      const matchesFilter =
+                        managementResFilter === 'todos' || res.status === managementResFilter;
+                      return matchesSearch && matchesFilter;
+                    });
+
+                    if (filteredAdminRes.length === 0) {
+                      return (
+                        <div className="text-center py-12 bg-emerald-900/30 rounded-2xl border border-emerald-800/60 p-6 space-y-2">
+                          <BookmarkCheck className="w-8 h-8 text-emerald-400 mx-auto" />
+                          <p className="text-sm font-bold text-white">Nenhuma reserva encontrada</p>
+                          <p className="text-xs text-emerald-300/80">
+                            Não há solicitações correspondentes ao filtro selecionado.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-3">
+                        {filteredAdminRes.map((res) => {
+                          const isPending = res.status === 'Pendente para Retirada';
+                          const isApproved = res.status === 'Aprovado para Retirada';
+                          const isBorrowed = res.status === 'Retirado / Emprestado';
+                          const isReturned = res.status === 'Devolvido';
+                          const isCancelled = res.status === 'Cancelado';
+                          const isBusy = updatingReservationId === res.id;
+
+                          return (
+                            <div
+                              key={res.id}
+                              className="p-4 rounded-2xl border border-emerald-800/80 bg-emerald-900/40 hover:bg-emerald-900/60 transition-all space-y-3"
+                            >
+                              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-emerald-800/60 pb-2.5">
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-mono text-xs font-bold text-emerald-300 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-700/60">
+                                      {res.id}
+                                    </span>
+                                    <span className="text-xs text-emerald-300/80">
+                                      {new Date(res.reservationDate).toLocaleDateString('pt-BR')} às{' '}
+                                      {new Date(res.reservationDate).toLocaleTimeString('pt-BR', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })}
+                                    </span>
+                                  </div>
+                                  <h4 className="text-base font-bold text-white mt-1">
+                                    {res.bookTitle}
+                                  </h4>
+                                  <p className="text-xs text-emerald-300">
+                                    Autor: {res.bookAuthor} · {res.shelfLocation}
+                                  </p>
+                                </div>
+
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold self-start sm:self-center ${
+                                    isPending
+                                      ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40'
+                                      : isApproved
+                                      ? 'bg-teal-400/20 text-teal-300 border border-teal-400/40'
+                                      : isBorrowed
+                                      ? 'bg-blue-400/20 text-blue-300 border border-blue-400/40'
+                                      : isReturned
+                                      ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/40'
+                                      : 'bg-rose-400/20 text-rose-300 border border-rose-400/40'
+                                  }`}
+                                >
+                                  {isPending && <Clock className="w-3.5 h-3.5" />}
+                                  {isApproved && <CheckCircle2 className="w-3.5 h-3.5" />}
+                                  {isBorrowed && <BookCheck className="w-3.5 h-3.5" />}
+                                  {isReturned && <CheckCircle2 className="w-3.5 h-3.5" />}
+                                  {isCancelled && <AlertCircle className="w-3.5 h-3.5" />}
+                                  <span>{res.status}</span>
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+                                <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60">
+                                  <span className="text-emerald-400/80 block">Estudante:</span>
+                                  <span className="font-bold text-white text-sm">{res.studentName}</span>
+                                  <div className="text-emerald-300/80 font-mono text-[11px] mt-0.5">
+                                    Matrícula: {res.studentMatricula}
+                                  </div>
+                                  <div className="text-emerald-300/80 text-[11px]">{res.studentGrade}</div>
+                                </div>
+
+                                <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60">
+                                  <span className="text-emerald-400/80 block">Contato & Observações:</span>
+                                  <span className="font-semibold text-emerald-100">{res.studentContact}</span>
+                                  <p className="text-emerald-300/80 text-[11px] mt-1 line-clamp-2">
+                                    {res.notes || 'Sem observações registradas'}
+                                  </p>
+                                </div>
+
+                                <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60">
+                                  <span className="text-emerald-400/80 block">Prazos:</span>
+                                  <div className="text-amber-300 font-semibold text-[11px]">
+                                    Retirada até: {new Date(res.pickupDeadline).toLocaleDateString('pt-BR')}
+                                  </div>
+                                  <div className="text-emerald-300/80 text-[11px] mt-0.5">
+                                    Devolução: {new Date(res.returnDeadline).toLocaleDateString('pt-BR')}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-emerald-800/60">
+                                {isPending && (
+                                  <button
+                                    onClick={() => handleAdminUpdateReservationStatus(res.id, 'Aprovado para Retirada')}
+                                    disabled={isBusy}
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-400 hover:bg-emerald-300 text-emerald-950 text-xs font-bold shadow-sm cursor-pointer disabled:opacity-60"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Aprovar Reserva</span>
+                                  </button>
+                                )}
+
+                                {(isPending || isApproved) && (
+                                  <button
+                                    onClick={() => handleAdminUpdateReservationStatus(res.id, 'Retirado / Emprestado')}
+                                    disabled={isBusy}
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-500/25 hover:bg-blue-500/40 text-blue-100 border border-blue-400/40 text-xs font-bold cursor-pointer disabled:opacity-60"
+                                  >
+                                    <BookCheck className="w-3.5 h-3.5" />
+                                    <span>Confirmar Retirada</span>
+                                  </button>
+                                )}
+
+                                {isBorrowed && (
+                                  <button
+                                    onClick={() => handleAdminUpdateReservationStatus(res.id, 'Devolvido')}
+                                    disabled={isBusy}
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-100 border border-emerald-400/40 text-xs font-bold cursor-pointer disabled:opacity-60"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>Registrar Devolução</span>
+                                  </button>
+                                )}
+
+                                {(isPending || isApproved) && (
+                                  <button
+                                    onClick={() => handleAdminUpdateReservationStatus(res.id, 'Cancelado')}
+                                    disabled={isBusy}
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-700/60 text-xs font-semibold cursor-pointer disabled:opacity-60"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                    <span>Cancelar Reserva</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* MANAGEMENT SUB-TAB 2: CATALOG TABLE */}
+              {managementSubTab === 'catalog' && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
@@ -1510,6 +1862,7 @@ export default function DigitalLibraryPage({ onBackToHome, onOpenAdminLogin }: D
                   </tbody>
                 </table>
               </div>
+              )}
 
             </div>
           </section>

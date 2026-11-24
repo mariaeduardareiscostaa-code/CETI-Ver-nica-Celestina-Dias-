@@ -1481,7 +1481,7 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                   </div>
 
                   <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto text-xs">
-                    {['todos', 'Pendente para Retirada', 'Retirado / Emprestado', 'Devolvido', 'Cancelado'].map((status) => (
+                    {['todos', 'Pendente para Retirada', 'Aprovado para Retirada', 'Retirado / Emprestado', 'Devolvido', 'Cancelado'].map((status) => (
                       <button
                         key={status}
                         onClick={() => setLibraryFilter(status)}
@@ -1523,6 +1523,7 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                     <div className="space-y-3">
                       {filtered.map((res) => {
                         const isPending = res.status === 'Pendente para Retirada';
+                        const isApproved = res.status === 'Aprovado para Retirada';
                         const isBorrowed = res.status === 'Retirado / Emprestado';
                         const isReturned = res.status === 'Devolvido';
                         const isCancelled = res.status === 'Cancelado';
@@ -1553,6 +1554,8 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                                   className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                                     isPending
                                       ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                      : isApproved
+                                      ? 'bg-teal-100 text-teal-800 border border-teal-200'
                                       : isBorrowed
                                       ? 'bg-blue-100 text-blue-800 border border-blue-200'
                                       : isReturned
@@ -1561,6 +1564,7 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                                   }`}
                                 >
                                   {isPending && <Clock className="w-3.5 h-3.5" />}
+                                  {isApproved && <CheckCircle2 className="w-3.5 h-3.5" />}
                                   {isBorrowed && <BookOpen className="w-3.5 h-3.5" />}
                                   {isReturned && <CheckCircle2 className="w-3.5 h-3.5" />}
                                   {isCancelled && <AlertCircle className="w-3.5 h-3.5" />}
@@ -1601,6 +1605,16 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                             <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-stone-200/60">
                               {isPending && (
                                 <button
+                                  onClick={() => handleUpdateReservationStatus(res.id, 'Aprovado para Retirada')}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold shadow-xs cursor-pointer"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Aprovar Reserva</span>
+                                </button>
+                              )}
+
+                              {(isPending || isApproved) && (
+                                <button
                                   onClick={() => handleUpdateReservationStatus(res.id, 'Retirado / Emprestado')}
                                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold shadow-xs cursor-pointer"
                                 >
@@ -1619,13 +1633,13 @@ export default function AdminPanel({ onBackToHome, initialTab = 'bullying' }: Ad
                                 </button>
                               )}
 
-                              {isPending && (
+                              {(isPending || isApproved) && (
                                 <button
                                   onClick={() => handleUpdateReservationStatus(res.id, 'Cancelado')}
                                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold cursor-pointer"
                                 >
                                   <X className="w-3.5 h-3.5" />
-                                  <span>Cancelar Pedido</span>
+                                  <span>Cancelar Reserva</span>
                                 </button>
                               )}
                             </div>

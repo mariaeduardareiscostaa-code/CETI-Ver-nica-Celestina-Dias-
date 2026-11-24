@@ -198,7 +198,7 @@ export interface ServerBookReservation {
   reservationDate: string;
   pickupDeadline: string;
   returnDeadline: string;
-  status: 'Pendente para Retirada' | 'Retirado / Emprestado' | 'Devolvido' | 'Cancelado';
+  status: 'Pendente para Retirada' | 'Aprovado para Retirada' | 'Retirado / Emprestado' | 'Devolvido' | 'Cancelado';
   notes: string;
 }
 
@@ -1959,8 +1959,8 @@ export async function createApiApp() {
         res.status(404).json({ error: 'Reserva não encontrada.' });
         return;
       }
-      if (target.status !== 'Pendente para Retirada') {
-        res.status(400).json({ error: 'Somente reservas pendentes podem ser canceladas.' });
+      if (target.status !== 'Pendente para Retirada' && target.status !== 'Aprovado para Retirada') {
+        res.status(400).json({ error: 'Somente reservas pendentes ou aprovadas podem ser canceladas.' });
         return;
       }
 
@@ -2007,7 +2007,13 @@ export async function createApiApp() {
     try {
       const resId = String(req.params.id || '');
       const newStatus = req.body?.status as ServerBookReservation['status'];
-      const validStatuses = new Set(['Pendente para Retirada', 'Retirado / Emprestado', 'Devolvido', 'Cancelado']);
+      const validStatuses = new Set([
+        'Pendente para Retirada',
+        'Aprovado para Retirada',
+        'Retirado / Emprestado',
+        'Devolvido',
+        'Cancelado',
+      ]);
       if (!validStatuses.has(newStatus)) {
         res.status(400).json({ error: 'Status de reserva inválido.' });
         return;
@@ -2021,40 +2027,53 @@ export async function createApiApp() {
       }
 
       const oldStatus = target.status;
-      const shouldReturnCopy =
-        (newStatus === 'Devolvido' || newStatus === 'Cancelado') &&
-        oldStatus !== 'Devolvido' &&
-        oldStatus !== 'Cancelado';
+      const isOldInactive = oldStatus === 'Devolvido' || oldStatus === 'Cancelado';
+      const isNewInactive = newStatus === 'Devolvido' || newStatus === 'Cancelado';
+      const shouldReturnCopy = isNewInactive && !isOldInactive;
+      const shouldConsumeCopy = !isNewInactive && isOldInactive;
 
       const books = await getAllBooksFromStore();
       const targetBook = books.find((b) => b.id === target.bookId);
+
+      if (shouldConsumeCopy && targetBook && targetBook.availableCopies <= 0) {
+        res.status(400).json({ error: 'Não há exemplares disponíveis deste livro no momento.' });
+        return;
+      }
+
+      const nextAvailableCopies = targetBook
+        ? shouldReturnCopy
+          ? Math.min(targetBook.totalCopies, targetBook.availableCopies + 1)
+          : shouldConsumeCopy
+            ? Math.max(0, targetBook.availableCopies - 1)
+            : targetBook.availableCopies
+        : undefined;
 
       if (HAS_REDIS) {
         const nextReservations = reservations.map((r) =>
           r.id === resId ? { ...r, status: newStatus } : r
         );
         await redisSetJson(REDIS_RESERVATIONS_KEY, nextReservations);
-        if (shouldReturnCopy && targetBook) {
+        if ((shouldReturnCopy || shouldConsumeCopy) && targetBook && nextAvailableCopies !== undefined) {
           const nextBooks = books.map((b) =>
             b.id === targetBook.id
-              ? { ...b, availableCopies: Math.min(b.totalCopies, b.availableCopies + 1) }
+              ? { ...b, availableCopies: nextAvailableCopies }
               : b
           );
           await saveAllBooksToRedis(nextBooks);
         }
       } else if (db) {
         db.prepare('UPDATE book_reservations SET status = ? WHERE id = ?').run(newStatus, resId);
-        if (shouldReturnCopy && targetBook) {
+        if ((shouldReturnCopy || shouldConsumeCopy) && targetBook && nextAvailableCopies !== undefined) {
           db.prepare('UPDATE books SET available_copies = ?, updated_at = ? WHERE id = ?').run(
-            Math.min(targetBook.totalCopies, targetBook.availableCopies + 1),
+            nextAvailableCopies,
             new Date().toISOString(),
             targetBook.id
           );
         }
       } else {
         target.status = newStatus;
-        if (shouldReturnCopy && targetBook) {
-          targetBook.availableCopies = Math.min(targetBook.totalCopies, targetBook.availableCopies + 1);
+        if ((shouldReturnCopy || shouldConsumeCopy) && targetBook && nextAvailableCopies !== undefined) {
+          targetBook.availableCopies = nextAvailableCopies;
         }
       }
 

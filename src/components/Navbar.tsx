@@ -52,9 +52,10 @@ export default function Navbar({
   };
 
   return (
-    <nav className="bg-emerald-900 text-white sticky top-0 z-50 shadow-md border-b border-emerald-800/70">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-18 gap-4">
+    <>
+      <nav className="bg-emerald-900 text-white fixed top-0 left-0 right-0 z-50 shadow-md border-b border-emerald-800/70">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-18 gap-4">
           
           {/* Brand / Logo */}
           <a 
@@ -355,6 +356,8 @@ export default function Navbar({
           </div>
         </div>
       )}
-    </nav>
+      </nav>
+      <div className="h-16 sm:h-18 shrink-0" aria-hidden="true" />
+    </>
   );
 }
